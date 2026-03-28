@@ -86,6 +86,7 @@ export async function POST(request: Request) {
         title: `${preset.label} Bullseye`,
         location_count: input.locationCount,
         guess_limit_per_round: input.guessLimitPerRound,
+        round_time_limit_seconds: input.roundTimeLimitSeconds,
         radii_meters: input.radiiMeters,
         import_seed: seed,
         status: "ready",

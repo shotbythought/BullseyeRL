@@ -4,6 +4,7 @@ import {
   getLocationRegionBounds,
 } from "@/lib/location-presets";
 import { SCORE_STEP } from "@/lib/domain/scoring";
+import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
 import type {
   ChallengeRecord,
   ChallengeRoundRecord,
@@ -58,6 +59,8 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
   if (membershipError || !membership) {
     throw new Error("You are not a member of this game.");
   }
+
+  await maybeExpireCurrentRound(gameId);
 
   const { data: game, error: gameError } = await supabase
     .from("games")
@@ -141,6 +144,16 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
           gameId: game.id,
         })
       : null;
+  const roundExpiresAtMs =
+    challenge.round_time_limit_seconds == null
+      ? null
+      : new Date(currentGameRound.created_at).getTime() +
+        challenge.round_time_limit_seconds * 1000;
+  const roundTimedOut =
+    currentGameRound.resolved &&
+    currentGameRound.attempts_remaining > 0 &&
+    roundExpiresAtMs != null &&
+    roundExpiresAtMs <= Date.now();
 
   return {
     gameId: game.id,
@@ -153,6 +166,16 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     attemptsRemaining: currentGameRound.attempts_remaining,
     attemptsUsed: currentGameRound.attempts_used,
     guessLimitPerRound: challenge.guess_limit_per_round,
+    roundTimeLimitSeconds: challenge.round_time_limit_seconds,
+    roundStartedAt: currentGameRound.created_at,
+    roundExpiresAt: roundExpiresAtMs == null ? null : new Date(roundExpiresAtMs).toISOString(),
+    roundTimeRemainingSeconds:
+      roundExpiresAtMs == null
+        ? null
+        : currentGameRound.resolved
+          ? 0
+          : Math.max(0, Math.ceil((roundExpiresAtMs - Date.now()) / 1000)),
+    roundTimedOut,
     radiiMeters: challenge.radii_meters,
     bestSuccessfulRadiusMeters: currentGameRound.best_successful_radius_meters,
     provisionalRoundPoints: currentGameRound.provisional_points,

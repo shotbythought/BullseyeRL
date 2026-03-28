@@ -23,7 +23,7 @@ BullseyeRL is a Next.js + Supabase app that turns built-in city presets into col
 ## Local setup
 
 1. Copy `.env.example` to `.env.local` and fill in the Supabase and Google Maps keys.
-2. Apply the SQL migration in [supabase/migrations/202603240001_initial.sql](/Users/michaelzeng/BullseyeRL/supabase/migrations/202603240001_initial.sql) to your Supabase project.
+2. Apply all SQL migrations in [supabase/migrations](/Users/michaelzeng/BullseyeRL/supabase/migrations) to your Supabase project in filename order.
 3. In Supabase Auth settings, enable Anonymous sign-ins.
 4. Install dependencies with `npm install`.
 5. Start the app with `npm run dev`.
@@ -40,4 +40,4 @@ BullseyeRL is a Next.js + Supabase app that turns built-in city presets into col
 
 - The preset generator uses hardcoded city bounding boxes and validates Street View coverage before the challenge snapshot is stored.
 - The clue image is intentionally non-interactive. Players cannot move, pan, or zoom it.
-- The authoritative guess mutation path is the SQL RPC in [supabase/migrations/202603240001_initial.sql](/Users/michaelzeng/BullseyeRL/supabase/migrations/202603240001_initial.sql).
+- The authoritative guess mutation path lives in the Supabase migration SQL under [supabase/migrations](/Users/michaelzeng/BullseyeRL/supabase/migrations).

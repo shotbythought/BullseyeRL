@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { authorizedJsonFetch } from "@/lib/api/client";
-import { formatMeters, formatScore } from "@/lib/utils";
+import { formatCountdown, formatDurationLabel, formatMeters, formatScore } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { LiveGameState } from "@/types/app";
@@ -21,6 +21,7 @@ interface RevealState {
   };
   radiiMeters: number[];
   isGameComplete: boolean;
+  timedOut: boolean;
 }
 
 export function LiveGameClient(props: { gameId: string }) {
@@ -31,6 +32,8 @@ export function LiveGameClient(props: { gameId: string }) {
   const [pending, startTransition] = useTransition();
   const [revealState, setRevealState] = useState<RevealState | null>(null);
   const revealLockRef = useRef(false);
+  const loadStateRef = useRef<(() => Promise<void>) | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let mounted = true;
@@ -63,6 +66,7 @@ export function LiveGameClient(props: { gameId: string }) {
       }
     }
 
+    loadStateRef.current = loadState;
     void loadState();
 
     const subscribe = (table: string, filter: string) =>
@@ -88,11 +92,32 @@ export function LiveGameClient(props: { gameId: string }) {
 
     return () => {
       mounted = false;
+      loadStateRef.current = null;
       channels.forEach((channel) => {
         void supabase.removeChannel(channel);
       });
     };
   }, [props.gameId]);
+
+  useEffect(() => {
+    setNow(Date.now());
+
+    if (!game?.roundExpiresAt || game.roundResolved) {
+      return;
+    }
+
+    const tickInterval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    const refreshTimeout = window.setTimeout(() => {
+      void loadStateRef.current?.();
+    }, Math.max(0, new Date(game.roundExpiresAt).getTime() - Date.now()) + 250);
+
+    return () => {
+      window.clearInterval(tickInterval);
+      window.clearTimeout(refreshTimeout);
+    };
+  }, [game?.currentRoundId, game?.roundExpiresAt, game?.roundResolved]);
 
   async function handleGuess() {
     if (!position || !game || !selectedRadius) {
@@ -119,6 +144,7 @@ export function LiveGameClient(props: { gameId: string }) {
           setRevealState({
             ...response.reveal,
             isGameComplete: response.gameStatus === "completed",
+            timedOut: response.reveal.timedOut === true,
           });
 
           try {
@@ -158,6 +184,7 @@ export function LiveGameClient(props: { gameId: string }) {
             target: game.target,
             radiiMeters: game.radiiMeters,
             isGameComplete: game.status === "completed",
+            timedOut: game.roundTimedOut,
           }
         : null);
 
@@ -233,8 +260,27 @@ export function LiveGameClient(props: { gameId: string }) {
           target: game.target,
           radiiMeters: game.radiiMeters,
           isGameComplete: game.status === "completed",
+          timedOut: game.roundTimedOut,
         }
       : null);
+  const roundTimeRemainingSeconds =
+    game.roundExpiresAt == null
+      ? null
+      : game.roundResolved
+        ? 0
+        : Math.max(0, Math.ceil((new Date(game.roundExpiresAt).getTime() - now) / 1000));
+  const roundTimerExpired =
+    game.roundTimeLimitSeconds != null &&
+    !game.roundResolved &&
+    roundTimeRemainingSeconds === 0;
+  const roundTimerValue =
+    game.roundTimeLimitSeconds == null
+      ? "No limit"
+      : activeRevealState?.timedOut
+        ? "Timed out"
+        : game.roundResolved
+          ? "Resolved"
+          : formatCountdown(roundTimeRemainingSeconds);
 
   if (game.status === "completed" && game.completedRounds && !revealState) {
     return <GameFinishedScreen game={game} />;
@@ -242,8 +288,9 @@ export function LiveGameClient(props: { gameId: string }) {
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-5">
+      <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-3 xl:grid-cols-6">
         <StatCard label="Round" value={`${game.roundIndex + 1} / ${game.roundCount}`} />
+        <StatCard label="Time left" value={roundTimerValue} />
         <StatCard label="Attempts left" value={String(game.attemptsRemaining)} />
         <StatCard label="Best so far" value={formatMeters(game.bestSuccessfulRadiusMeters)} />
         <StatCard label="Round points" value={formatScore(game.provisionalRoundPoints)} />
@@ -329,8 +376,17 @@ export function LiveGameClient(props: { gameId: string }) {
                   {formatMeters(position?.accuracy ?? null)}
                 </span>
               </p>
+              <p>
+                Round timer:{" "}
+                <span className="font-semibold text-ink">
+                  {formatDurationLabel(game.roundTimeLimitSeconds)}
+                </span>
+              </p>
               {geolocationError ? (
                 <p className="text-ember">{geolocationError}</p>
+              ) : null}
+              {roundTimerExpired ? (
+                <p className="text-amber-700">The round timer just expired. Refreshing the reveal.</p>
               ) : null}
               {accuracyWarning ? (
                 <p className="text-amber-700">
@@ -351,7 +407,9 @@ export function LiveGameClient(props: { gameId: string }) {
                   Round resolved
                 </p>
                 <p className="mt-2 text-sm leading-7 text-ink/68">
-                  Review the reveal on the map, then continue when your team is ready.
+                  {activeRevealState.timedOut
+                    ? "Time expired for this round. Review the reveal on the map, then continue when your team is ready."
+                    : "Review the reveal on the map, then continue when your team is ready."}
                 </p>
                 <button
                   className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
@@ -370,7 +428,14 @@ export function LiveGameClient(props: { gameId: string }) {
 
             <button
               className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45] disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!position || !selectedRadius || pending || game.status === "completed" || !!activeRevealState}
+              disabled={
+                !position ||
+                !selectedRadius ||
+                pending ||
+                game.status === "completed" ||
+                !!activeRevealState ||
+                roundTimerExpired
+              }
               onClick={() => void handleGuess()}
               type="button"
             >

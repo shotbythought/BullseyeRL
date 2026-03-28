@@ -17,6 +17,7 @@ export function CreateChallengeForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [timerEnabled, setTimerEnabled] = useState(true);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,6 +28,9 @@ export function CreateChallengeForm() {
       presetId: String(formData.get("presetId") ?? ""),
       locationCount: Number(formData.get("locationCount") ?? 5),
       guessLimitPerRound: Number(formData.get("guessLimitPerRound") ?? 5),
+      roundTimeLimitSeconds: timerEnabled
+        ? Number(formData.get("roundTimeLimitMinutes") ?? 60) * 60
+        : null,
       radiiMeters: parseRadii(String(formData.get("radiiMeters") ?? "")),
     };
 
@@ -102,6 +106,40 @@ export function CreateChallengeForm() {
             min={1}
             name="guessLimitPerRound"
             required
+            type="number"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 rounded-[1.8rem] border border-ink/10 bg-mist/70 p-4">
+        <label className="flex items-center justify-between gap-4" htmlFor="roundTimerEnabled">
+          <span>
+            <span className="block text-sm font-medium text-ink/70">Round timer</span>
+            <span className="mt-1 block text-sm leading-6 text-ink/55">
+              Auto-time out each round, or disable the timer entirely.
+            </span>
+          </span>
+          <input
+            checked={timerEnabled}
+            className="h-5 w-5 rounded border-ink/20 text-ink focus:ring-moss"
+            id="roundTimerEnabled"
+            onChange={(event) => setTimerEnabled(event.target.checked)}
+            type="checkbox"
+          />
+        </label>
+
+        <div className={timerEnabled ? "space-y-2" : "space-y-2 opacity-50"}>
+          <label className="text-sm font-medium text-ink/70" htmlFor="roundTimeLimitMinutes">
+            Time limit per round (minutes)
+          </label>
+          <input
+            className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10 disabled:cursor-not-allowed disabled:bg-white/70"
+            defaultValue={60}
+            disabled={!timerEnabled}
+            id="roundTimeLimitMinutes"
+            min={1}
+            name="roundTimeLimitMinutes"
+            required={timerEnabled}
             type="number"
           />
         </div>

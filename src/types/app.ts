@@ -39,6 +39,7 @@ export interface ChallengeRecord {
   title: string;
   location_count: number;
   guess_limit_per_round: number;
+  round_time_limit_seconds: number | null;
   radii_meters: number[];
   import_seed: string;
   status: ChallengeStatus;
@@ -77,6 +78,7 @@ export interface GameRoundRecord {
   provisional_points: number;
   resolved: boolean;
   resolved_at: string | null;
+  created_at: string;
 }
 
 export interface GuessRecord {
@@ -126,6 +128,11 @@ export interface LiveGameState {
   attemptsRemaining: number;
   attemptsUsed: number;
   guessLimitPerRound: number;
+  roundTimeLimitSeconds: number | null;
+  roundStartedAt: string;
+  roundExpiresAt: string | null;
+  roundTimeRemainingSeconds: number | null;
+  roundTimedOut: boolean;
   radiiMeters: number[];
   bestSuccessfulRadiusMeters: number | null;
   provisionalRoundPoints: number;

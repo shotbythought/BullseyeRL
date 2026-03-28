@@ -5,7 +5,7 @@ import { StartGameCard } from "@/components/start-game-card";
 import { StatusChip } from "@/components/status-chip";
 import { getChallengeWithRounds } from "@/lib/data/queries";
 import { getLocationPreset } from "@/lib/location-presets";
-import { formatRadiusList } from "@/lib/utils";
+import { formatDurationLabel, formatRadiusList } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,13 @@ export default async function ChallengeDetailPage({
             <div className="flex flex-wrap gap-2">
               <StatusChip label={`${challenge.location_count} rounds`} />
               <StatusChip label={`${challenge.guess_limit_per_round} shared guesses`} />
+              <StatusChip
+                label={
+                  challenge.round_time_limit_seconds == null
+                    ? "No round timer"
+                    : `${formatDurationLabel(challenge.round_time_limit_seconds)} timer`
+                }
+              />
               <StatusChip label={challenge.status} />
             </div>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-ink">
@@ -43,10 +50,14 @@ export default async function ChallengeDetailPage({
               snapshot.
             </p>
 
-            <dl className="mt-8 grid gap-4 md:grid-cols-3">
+            <dl className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <MetaCard label="Radii" value={formatRadiusList(challenge.radii_meters)} />
               <MetaCard label="Rounds" value={String(challenge.location_count)} />
               <MetaCard label="Guess budget" value={String(challenge.guess_limit_per_round)} />
+              <MetaCard
+                label="Round timer"
+                value={formatDurationLabel(challenge.round_time_limit_seconds)}
+              />
             </dl>
 
             <div className="mt-8 rounded-[2rem] border border-ink/10 bg-mist p-5">
