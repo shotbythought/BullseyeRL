@@ -15,8 +15,6 @@
 import { resolveStreetViewMetadata } from "@/lib/google/street-view";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import {
-  BIRTHDAY_SOURCE_PRESET_ID,
-  BIRTHDAY_SOURCE_REGION_ID,
   BIRTHDAY_STREET_VIEW_FOV,
   BIRTHDAY_STREET_VIEW_HEADING_SOUTH,
   BIRTHDAY_STREET_VIEW_PITCH,
@@ -82,10 +80,10 @@ export async function applyBirthdayNextRoundSeed(input: {
 
   const { data: nextRound, error: nextRoundError } = await supabase
     .from("challenge_rounds")
-    .select("id, source_payload")
+    .select("id")
     .eq("challenge_id", game.challenge_id)
     .eq("round_index", nextRoundIndex)
-    .maybeSingle<{ id: string; source_payload: Record<string, unknown> | null }>();
+    .maybeSingle<{ id: string }>();
 
   if (nextRoundError || !nextRound) {
     return { error: "Next round not found for this challenge.", status: 404 };
@@ -98,14 +96,6 @@ export async function applyBirthdayNextRoundSeed(input: {
     return { error: "Street View is unavailable at the override location.", status: 422 };
   }
 
-  const mergedPayload: Record<string, unknown> = {
-    ...(nextRound.source_payload && typeof nextRound.source_payload === "object"
-      ? nextRound.source_payload
-      : {}),
-    presetId: BIRTHDAY_SOURCE_PRESET_ID,
-    regionId: BIRTHDAY_SOURCE_REGION_ID,
-  };
-
   const { error: updateError } = await supabase
     .from("challenge_rounds")
     .update({
@@ -117,7 +107,6 @@ export async function applyBirthdayNextRoundSeed(input: {
       street_view_heading: BIRTHDAY_STREET_VIEW_HEADING_SOUTH,
       street_view_pitch: BIRTHDAY_STREET_VIEW_PITCH,
       street_view_fov: BIRTHDAY_STREET_VIEW_FOV,
-      source_payload: mergedPayload,
     })
     .eq("id", nextRound.id);
 

@@ -6,7 +6,3 @@ export const BIRTHDAY_TARGET_LNG = -122.390497;
 export const BIRTHDAY_STREET_VIEW_HEADING_SOUTH = 180;
 export const BIRTHDAY_STREET_VIEW_PITCH = 0;
 export const BIRTHDAY_STREET_VIEW_FOV = 90;
-
-/** Map bounds via source_payload for this round (coordinates are in SF) */
-export const BIRTHDAY_SOURCE_PRESET_ID = "san-francisco";
-export const BIRTHDAY_SOURCE_REGION_ID = "san-francisco-core";
