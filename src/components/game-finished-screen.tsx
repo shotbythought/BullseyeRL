@@ -47,7 +47,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[2.8rem] border border-ink/10 bg-white/95 shadow-panel">
+      <section className="overflow-hidden rounded-[1.125rem] border border-ink/10 bg-white/95 shadow-panel">
         <div className="relative overflow-hidden bg-slate px-6 py-8 text-white sm:px-8">
           <div className="absolute inset-0 bg-grid bg-[size:38px_38px] opacity-[0.08]" />
           <div className="absolute -right-8 top-0 h-40 w-40 rounded-full bg-neon/20 blur-3xl" />
@@ -64,7 +64,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
               </p>
               <div className="mt-6">
                 <button
-                  className="inline-flex items-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45]"
+                  className="inline-flex items-center rounded-xl bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45]"
                   onClick={() => void handleCopyShare()}
                   type="button"
                 >
@@ -77,7 +77,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/10 px-6 py-5 backdrop-blur">
+            <div className="rounded-[0.875rem] border border-white/10 bg-white/10 px-6 py-5 backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">
                 Team score
               </p>
@@ -103,7 +103,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {completedRounds.map((round) => (
           <article
-            className="overflow-hidden rounded-[2rem] border border-ink/10 bg-white/94 shadow-panel"
+            className="overflow-hidden rounded-[0.875rem] border border-ink/10 bg-white/94 shadow-panel"
             key={round.challengeRoundId}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

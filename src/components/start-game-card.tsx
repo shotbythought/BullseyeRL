@@ -37,7 +37,7 @@ export function StartGameCard(props: { challengeId: string }) {
   }
 
   return (
-    <div className="rounded-[2rem] border border-ink/10 bg-white/90 p-6 shadow-panel">
+    <div className="rounded-[0.875rem] border border-ink/10 bg-white/90 p-6 shadow-panel">
       <h2 className="text-xl font-semibold text-ink">Start a collaborative game</h2>
       <p className="mt-2 text-sm text-ink/65">
         The creator joins immediately and shares one live score, one shared guess budget, and one
@@ -45,7 +45,7 @@ export function StartGameCard(props: { challengeId: string }) {
       </p>
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
         <input
-          className="w-full rounded-3xl border border-ink/10 bg-mist px-5 py-4 text-base outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+          className="w-full rounded-xl border border-ink/10 bg-mist px-5 py-4 text-base outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
           defaultValue="Captain"
           name="nickname"
           placeholder="Your nickname"
@@ -53,12 +53,12 @@ export function StartGameCard(props: { challengeId: string }) {
           type="text"
         />
         {error ? (
-          <p className="rounded-3xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
+          <p className="rounded-xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
             {error}
           </p>
         ) : null}
         <button
-          className="inline-flex w-full items-center justify-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending}
           type="submit"
         >

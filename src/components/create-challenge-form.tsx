@@ -62,7 +62,7 @@ export function CreateChallengeForm() {
           Play area
         </label>
         <select
-          className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+          className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
           defaultValue="san-francisco"
           id="presetId"
           name="presetId"
@@ -83,7 +83,7 @@ export function CreateChallengeForm() {
             Number of rounds
           </label>
           <input
-            className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+            className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
             defaultValue={3}
             id="locationCount"
             max={50}
@@ -99,7 +99,7 @@ export function CreateChallengeForm() {
             Shared guesses per round
           </label>
           <input
-            className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+            className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
             defaultValue={5}
             id="guessLimitPerRound"
             max={50}
@@ -111,7 +111,7 @@ export function CreateChallengeForm() {
         </div>
       </div>
 
-      <div className="space-y-4 rounded-[1.8rem] border border-ink/10 bg-mist/70 p-4">
+      <div className="space-y-4 rounded-[0.75rem] border border-ink/10 bg-mist/70 p-4">
         <label className="flex items-center justify-between gap-4" htmlFor="roundTimerEnabled">
           <span>
             <span className="block text-sm font-medium text-ink/70">Round timer</span>
@@ -133,7 +133,7 @@ export function CreateChallengeForm() {
             Time limit per round (minutes)
           </label>
           <input
-            className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10 disabled:cursor-not-allowed disabled:bg-white/70"
+            className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10 disabled:cursor-not-allowed disabled:bg-white/70"
             defaultValue={60}
             disabled={!timerEnabled}
             id="roundTimeLimitMinutes"
@@ -150,7 +150,7 @@ export function CreateChallengeForm() {
           Bullseye radii (meters, ascending)
         </label>
         <input
-          className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+          className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
           defaultValue="50,500,2000,5000"
           id="radiiMeters"
           name="radiiMeters"
@@ -161,13 +161,13 @@ export function CreateChallengeForm() {
       </div>
 
       {error ? (
-        <p className="rounded-3xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
+        <p className="rounded-xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
           {error}
         </p>
       ) : null}
 
       <button
-        className="inline-flex w-full items-center justify-center rounded-full bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center rounded-xl bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending}
         type="submit"
       >

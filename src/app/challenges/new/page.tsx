@@ -9,7 +9,7 @@ export default function NewChallengePage() {
         Home
       </Link>
 
-      <section className="rounded-[2.5rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
+      <section className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
           New challenge
         </p>

@@ -1,6 +1,6 @@
 export function FixedStreetViewClue(props: { imageUrl: string }) {
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-ink/10 bg-slate shadow-panel">
+    <div className="overflow-hidden rounded-[0.875rem] border border-ink/10 bg-slate shadow-panel">
       <div className="relative aspect-[16/10] bg-ink">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

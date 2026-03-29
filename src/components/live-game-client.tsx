@@ -272,11 +272,11 @@ export function LiveGameClient(props: { gameId: string }) {
     return (
       <div className="space-y-6">
         <GamePageHeader joinCode={null} />
-        <div className="rounded-[2rem] border border-ember/20 bg-white/95 p-6 shadow-panel">
+        <div className="rounded-[0.875rem] border border-ember/20 bg-white/95 p-6 shadow-panel">
           <p className="text-lg font-semibold text-ink">Unable to open this game.</p>
           <p className="mt-2 text-sm text-ink/65">{error}</p>
           <Link
-            className="mt-4 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white"
+            className="mt-4 inline-flex rounded-xl bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white"
             href="/"
           >
             Back home
@@ -290,7 +290,7 @@ export function LiveGameClient(props: { gameId: string }) {
     return (
       <div className="space-y-6">
         <GamePageHeader joinCode={null} />
-        <div className="rounded-[2rem] border border-ink/10 bg-white/95 p-6 text-sm text-ink/65 shadow-panel">
+        <div className="rounded-[0.875rem] border border-ink/10 bg-white/95 p-6 text-sm text-ink/65 shadow-panel">
           Loading live game...
         </div>
       </div>
@@ -344,7 +344,7 @@ export function LiveGameClient(props: { gameId: string }) {
     <div className="space-y-6">
       <GamePageHeader joinCode={game.joinCode} />
       <div className="space-y-5">
-      <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-4 xl:grid-cols-8">
+      <section className="grid gap-4 rounded-[0.875rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-4 xl:grid-cols-8">
         <StatCard label="Round" value={`${game.roundIndex + 1} / ${game.roundCount}`} />
         <StatCard label="Time left" value={roundTimerValue} />
         <StatCard label="Attempts left" value={String(game.attemptsRemaining)} />
@@ -359,7 +359,7 @@ export function LiveGameClient(props: { gameId: string }) {
         <div className="space-y-5">
           <FixedStreetViewClue imageUrl={game.clueImageUrl} />
 
-          <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-4 shadow-panel">
+          <div className="rounded-[0.875rem] border border-ink/10 bg-white/92 p-4 shadow-panel">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
                 Live guess map
@@ -392,31 +392,67 @@ export function LiveGameClient(props: { gameId: string }) {
         </div>
 
         <aside className="space-y-5">
-          <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
+          <div className="rounded-[0.875rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
               Guess controls
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {game.radiiMeters.map((radius) => (
-                <button
-                  className={`rounded-3xl border px-4 py-4 text-left transition ${
-                    selectedRadius === radius
-                      ? "border-ink bg-ink text-white"
-                      : "border-ink/10 bg-mist text-ink hover:border-moss"
-                  }`}
-                  key={radius}
-                  onClick={() => setSelectedRadius(radius)}
-                  type="button"
+            <div className="mt-4 space-y-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <label
+                  className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45"
+                  htmlFor="guess-radius-slider"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">
-                    Radius
-                  </p>
-                  <p className="mt-1 text-lg font-semibold">{formatMeters(radius)}</p>
-                </button>
-              ))}
+                  Radius
+                </label>
+                <output
+                  className="text-lg font-semibold tabular-nums text-ink"
+                  htmlFor="guess-radius-slider"
+                >
+                  {selectedRadius != null ? formatMeters(selectedRadius) : "—"}
+                </output>
+              </div>
+              <input
+                aria-valuetext={
+                  selectedRadius != null ? formatMeters(selectedRadius) : undefined
+                }
+                className="mt-2 h-2.5 w-full cursor-grab appearance-none rounded-full bg-ink/15 [accent-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95 active:cursor-grabbing [&::-moz-range-track]:h-2.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-ink/15 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-white/95 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-white/95 [&::-webkit-slider-thumb]:transition-[box-shadow,transform] [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-[1.06] [&::-webkit-slider-thumb]:hover:shadow-[0_4px_18px_rgba(13,22,19,0.5)] [&::-webkit-slider-thumb]:active:scale-100 [&::-webkit-slider-thumb]:active:cursor-grabbing"
+                id="guess-radius-slider"
+                max={Math.max(0, game.radiiMeters.length - 1)}
+                min={0}
+                onChange={(event) => {
+                  const index = Number.parseInt(event.target.value, 10);
+                  const next = game.radiiMeters[index];
+                  if (next != null) {
+                    setSelectedRadius(next);
+                  }
+                }}
+                step={1}
+                type="range"
+                value={Math.min(
+                  Math.max(
+                    0,
+                    selectedRadius != null
+                      ? game.radiiMeters.indexOf(selectedRadius)
+                      : 0,
+                  ),
+                  Math.max(0, game.radiiMeters.length - 1),
+                )}
+              />
+              <div className="flex justify-between gap-1 px-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-ink/40">
+                {game.radiiMeters.map((radius) => (
+                  <span
+                    className={
+                      selectedRadius === radius ? "text-ink" : undefined
+                    }
+                    key={radius}
+                  >
+                    {formatMeters(radius)}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-5 space-y-3 rounded-[1.5rem] bg-mist p-4 text-sm text-ink/70">
+            <div className="mt-5 space-y-3 rounded-[0.625rem] bg-mist p-4 text-sm text-ink/70">
               <p>
                 GPS accuracy:{" "}
                 <span className="font-semibold text-ink">
@@ -509,13 +545,13 @@ export function LiveGameClient(props: { gameId: string }) {
             </div>
 
             {error ? (
-              <p className="mt-4 rounded-3xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
+              <p className="mt-4 rounded-xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
                 {error}
               </p>
             ) : null}
 
             {activeRevealState ? (
-              <div className="mt-4 rounded-[1.6rem] border border-ink/10 bg-mist p-4">
+              <div className="mt-4 rounded-[0.75rem] border border-ink/10 bg-mist p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
                   Round resolved
                 </p>
@@ -525,7 +561,7 @@ export function LiveGameClient(props: { gameId: string }) {
                     : "Review the reveal on the map, then continue when your team is ready."}
                 </p>
                 <button
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={pending}
                   onClick={() => void handleAdvanceRound()}
                   type="button"
@@ -540,7 +576,7 @@ export function LiveGameClient(props: { gameId: string }) {
             ) : null}
 
             <button
-              className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={
                 !position ||
                 !selectedRadius ||
@@ -556,7 +592,7 @@ export function LiveGameClient(props: { gameId: string }) {
             </button>
           </div>
 
-          <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
+          <div className="rounded-[0.875rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
                 Team roster
@@ -570,7 +606,7 @@ export function LiveGameClient(props: { gameId: string }) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
+          <div className="rounded-[0.875rem] border border-ink/10 bg-white/92 p-5 shadow-panel">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
               Guess history
             </p>
@@ -581,7 +617,7 @@ export function LiveGameClient(props: { gameId: string }) {
                   .reverse()
                   .map((guess) => (
                     <div
-                      className="rounded-[1.4rem] border border-ink/10 bg-mist p-4"
+                      className="rounded-[0.625rem] border border-ink/10 bg-mist p-4"
                       key={guess.id}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -679,7 +715,7 @@ function GamePageHeader(props: { joinCode: string | null }) {
       {props.joinCode ? (
         <button
           aria-label={`Copy invite link for join code ${props.joinCode}`}
-          className="inline-flex max-w-full items-center gap-2.5 rounded-[1.25rem] border border-ink/15 bg-white/92 px-4 py-2.5 text-left text-sm text-ink/70 shadow-[0_1px_0_rgba(15,23,28,0.04)] transition hover:border-ink/25 hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35"
+          className="inline-flex max-w-full items-center gap-2.5 rounded-[0.5rem] border border-ink/15 bg-white/92 px-4 py-2.5 text-left text-sm text-ink/70 shadow-[0_1px_0_rgba(15,23,28,0.04)] transition hover:border-ink/25 hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35"
           onClick={() => void handleCopyInviteLink()}
           type="button"
         >
@@ -723,7 +759,7 @@ function CopyInviteIcon(props: { className?: string }) {
 
 function StatCard(props: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.6rem] bg-mist p-4">
+    <div className="rounded-[0.75rem] bg-mist p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
         {props.label}
       </p>
@@ -742,7 +778,7 @@ function HintControlCard(props: {
   statusLabel?: string | null;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-ink/10 bg-mist p-4">
+    <div className="rounded-[0.625rem] border border-ink/10 bg-mist p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-ink">{props.title}</p>
@@ -754,7 +790,7 @@ function HintControlCard(props: {
       </div>
       <p className="mt-3 text-sm leading-6 text-ink/65">{props.description}</p>
       <button
-        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
         disabled={props.disabled}
         onClick={props.onClick}
         type="button"

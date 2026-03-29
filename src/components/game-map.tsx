@@ -340,5 +340,5 @@ export function GameMap(props: GuessMapProps) {
     };
   }, [mapReady, props.mapBounds, props.roundKey]);
 
-  return <div className="h-[28rem] w-full overflow-hidden rounded-[2rem]" ref={containerRef} />;
+  return <div className="h-[28rem] w-full overflow-hidden rounded-[0.875rem]" ref={containerRef} />;
 }

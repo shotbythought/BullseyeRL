@@ -7,7 +7,7 @@ export function StatusChip(props: {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]",
+        "inline-flex items-center rounded-xl border px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em]",
         props.tone === "success" &&
           "border-moss/50 bg-moss/10 text-moss",
         props.tone === "warning" &&

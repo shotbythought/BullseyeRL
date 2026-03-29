@@ -38,9 +38,9 @@ export function BirthdaySetNextRoundButton(props: {
   }
 
   return (
-    <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-4 shadow-panel">
+    <div className="rounded-[0.875rem] border border-ink/10 bg-white/92 p-4 shadow-panel">
       <button
-        className="w-full rounded-full border border-ink/15 bg-mist px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink/70 transition hover:border-ink/25 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-xl border border-ink/15 bg-mist px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-ink/70 transition hover:border-ink/25 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
         disabled={props.disabled}
         onClick={() => void handleClick()}
         type="button"

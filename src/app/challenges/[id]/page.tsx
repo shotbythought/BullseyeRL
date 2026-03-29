@@ -27,7 +27,7 @@ export default async function ChallengeDetailPage({
         </Link>
 
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2.5rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
+          <div className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
             <div className="flex flex-wrap gap-2">
               <StatusChip label={`${challenge.location_count} rounds`} />
               <StatusChip label={`${challenge.guess_limit_per_round} shared guesses`} />
@@ -60,14 +60,14 @@ export default async function ChallengeDetailPage({
               />
             </dl>
 
-            <div className="mt-8 rounded-[2rem] border border-ink/10 bg-mist p-5">
+            <div className="mt-8 rounded-[0.875rem] border border-ink/10 bg-mist p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
                 Snapshot preview
               </p>
               <div className="mt-4 grid gap-3">
                 {rounds.map((round) => (
                   <div
-                    className="flex items-center justify-between rounded-[1.4rem] border border-ink/10 bg-white px-4 py-4"
+                    className="flex items-center justify-between rounded-[0.625rem] border border-ink/10 bg-white px-4 py-4"
                     key={round.id}
                   >
                     <div>
@@ -96,7 +96,7 @@ export default async function ChallengeDetailPage({
 
 function MetaCard(props: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.5rem] bg-mist p-4">
+    <div className="rounded-[0.625rem] bg-mist p-4">
       <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
         {props.label}
       </dt>
