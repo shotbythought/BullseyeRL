@@ -30,7 +30,6 @@ interface GuessMapProps {
         lng: number;
       }
     | null;
-  revealRadii: number[];
 }
 
 export function GameMap(props: GuessMapProps) {
@@ -189,23 +188,8 @@ export function GameMap(props: GuessMapProps) {
         targetMarker.map = null;
       });
 
-      props.revealRadii.forEach((radius) => {
-        const bullseyeCircle = new googleMaps.maps.Circle({
-          map,
-          center: props.revealTarget!,
-          radius,
-          fillOpacity: 0,
-          strokeColor: "#0d1613",
-          strokeOpacity: 0.5,
-          strokeWeight: 1.5,
-        });
-
-        overlaysRef.current.push(() => {
-          bullseyeCircle.setMap(null);
-        });
-      });
     }
-  }, [props.closerHintCircle, props.guesses, mapReady, props.revealRadii, props.revealTarget]);
+  }, [props.closerHintCircle, props.guesses, mapReady, props.revealTarget]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;
@@ -301,6 +285,7 @@ export function GameMap(props: GuessMapProps) {
   }, [
     mapReady,
     props.currentAccuracy,
+    props.currentPosition,
     props.currentPosition?.latitude,
     props.currentPosition?.longitude,
     props.selectedRadius,

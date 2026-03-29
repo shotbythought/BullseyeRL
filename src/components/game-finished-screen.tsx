@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { SCORE_STEP } from "@/lib/domain/scoring";
+import { SCORE_STEP, scorecardLabelForRadius, type ScorecardLabel } from "@/lib/domain/scoring";
 import { formatMeters, formatScore } from "@/lib/utils";
 import type { LiveGameState } from "@/types/app";
 import { StatusChip } from "@/components/status-chip";
@@ -47,7 +47,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[1.125rem] border border-ink/10 bg-white/95 shadow-panel">
+      <section className="overflow-hidden rounded-[2.8rem] border border-ink/10 bg-white/95 shadow-panel">
         <div className="relative overflow-hidden bg-slate px-6 py-8 text-white sm:px-8">
           <div className="absolute inset-0 bg-grid bg-[size:38px_38px] opacity-[0.08]" />
           <div className="absolute -right-8 top-0 h-40 w-40 rounded-full bg-neon/20 blur-3xl" />
@@ -64,7 +64,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
               </p>
               <div className="mt-6">
                 <button
-                  className="inline-flex items-center rounded-xl bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45]"
+                  className="inline-flex items-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45]"
                   onClick={() => void handleCopyShare()}
                   type="button"
                 >
@@ -77,7 +77,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
               </div>
             </div>
 
-            <div className="rounded-[0.875rem] border border-white/10 bg-white/10 px-6 py-5 backdrop-blur">
+            <div className="rounded-[2rem] border border-white/10 bg-white/10 px-6 py-5 backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">
                 Team score
               </p>
@@ -101,41 +101,45 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
       </section>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {completedRounds.map((round) => (
-          <article
-            className="overflow-hidden rounded-[0.875rem] border border-ink/10 bg-white/94 shadow-panel"
-            key={round.challengeRoundId}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt={`Round ${round.roundIndex + 1} clue`}
-              className="aspect-[16/10] w-full object-cover"
-              draggable={false}
-              src={round.clueImageUrl}
-            />
-            <div className="space-y-4 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ink/45">
-                    Round {round.roundIndex + 1}
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold text-ink">
-                    {formatScore(round.score)}
-                  </p>
+        {completedRounds.map((round) => {
+          const label = scorecardLabelForRadius(
+            props.game.radiiMeters,
+            round.bestSuccessfulRadiusMeters,
+          );
+
+          return (
+            <article
+              className="overflow-hidden rounded-[2rem] border border-ink/10 bg-white/94 shadow-panel"
+              key={round.challengeRoundId}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={`Round ${round.roundIndex + 1} clue`}
+                className="aspect-[16/10] w-full object-cover"
+                draggable={false}
+                src={round.clueImageUrl}
+              />
+              <div className="space-y-4 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-ink/45">
+                      Round {round.roundIndex + 1}
+                    </p>
+                    <p className="mt-2 text-3xl font-semibold text-ink">
+                      {formatScore(round.score)}
+                    </p>
+                  </div>
+                  <StatusChip label={label} tone={scoreTone(label)} />
                 </div>
-                <StatusChip
-                  label={scoreLabel(round.score, props.game.maxRoundPoints)}
-                  tone={scoreTone(round.score, props.game.maxRoundPoints)}
-                />
+                <p className="text-sm leading-7 text-ink/65">
+                  {round.bestSuccessfulRadiusMeters != null
+                    ? `Best hit at ${formatMeters(round.bestSuccessfulRadiusMeters)}.`
+                    : "No successful guess landed inside the bullseye tiers."}
+                </p>
               </div>
-              <p className="text-sm leading-7 text-ink/65">
-                {round.bestSuccessfulRadiusMeters != null
-                  ? `Best hit at ${formatMeters(round.bestSuccessfulRadiusMeters)}.`
-                  : "No successful guess landed inside the bullseye tiers."}
-              </p>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </section>
     </div>
   );
@@ -178,26 +182,18 @@ function scoreEmoji(score: number, maxRoundPoints: number) {
   return "🟧";
 }
 
-function scoreTone(score: number, maxRoundPoints: number) {
-  if (score <= 0) {
-    return "danger" as const;
-  }
-
-  if (score >= maxRoundPoints) {
+function scoreTone(label: ScorecardLabel) {
+  if (label === "Bullseye") {
     return "success" as const;
   }
 
-  return "warning" as const;
-}
-
-function scoreLabel(score: number, maxRoundPoints: number) {
-  if (score <= 0) {
-    return "Miss";
+  if (label === "Fair") {
+    return "neutral" as const;
   }
 
-  if (score >= maxRoundPoints) {
-    return "Bullseye";
+  if (label === "mid minus") {
+    return "warning" as const;
   }
 
-  return "Scored";
+  return "danger" as const;
 }

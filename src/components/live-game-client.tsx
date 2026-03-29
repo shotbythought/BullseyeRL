@@ -11,6 +11,7 @@ import { formatCountdown, formatMeters, formatScore } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { LiveGameState } from "@/types/app";
+import { BrandMark } from "@/components/brand-mark";
 import { BirthdaySetNextRoundButton } from "@/components/temp/birthday-set-next-round-button";
 import { FixedStreetViewClue } from "@/components/fixed-street-view-clue";
 import { GameFinishedScreen } from "@/components/game-finished-screen";
@@ -706,12 +707,10 @@ function GamePageHeader(props: { joinCode: string | null }) {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-ink/45">
-        <span aria-hidden="true" className="text-[1.15em] leading-none">
-          🎯
-        </span>
-        <span>BullseyeRL</span>
-      </span>
+      <BrandMark
+        className="text-sm font-semibold uppercase tracking-[0.22em] text-ink/45 transition hover:text-ink/65"
+        href="/"
+      />
       {props.joinCode ? (
         <button
           aria-label={`Copy invite link for join code ${props.joinCode}`}

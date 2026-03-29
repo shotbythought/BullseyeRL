@@ -1,13 +1,10 @@
-import Link from "next/link";
-
+import { HomeLink } from "@/components/brand-mark";
 import { CreateChallengeForm } from "@/components/create-challenge-form";
 
 export default function NewChallengePage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6">
-      <Link className="text-sm font-semibold uppercase tracking-[0.22em] text-ink/45" href="/">
-        Home
-      </Link>
+      <HomeLink />
 
       <section className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">

@@ -21,6 +21,7 @@ import {
   didImproveBestRadius,
   maxPointsForRadii,
   pointsForRadius,
+  scorecardLabelForRadius,
   validateRadii,
 } from "../src/lib/domain/scoring";
 
@@ -77,6 +78,16 @@ describe("scoring helpers", () => {
     expect(pointsForRadius(radii, 100)).toBe(3 * SCORE_STEP);
     expect(pointsForRadius(radii, 500)).toBe(1 * SCORE_STEP);
     expect(pointsForRadius(radii, null)).toBe(0);
+  });
+
+  it("labels successful radii from best tier downward", () => {
+    expect(scorecardLabelForRadius([25], 25)).toBe("Bullseye");
+    expect(scorecardLabelForRadius([25], null)).toBe("Miss");
+    expect(scorecardLabelForRadius([25, 100], 100)).toBe("Fair");
+    expect(scorecardLabelForRadius([25, 100, 250, 500], 25)).toBe("Bullseye");
+    expect(scorecardLabelForRadius([25, 100, 250, 500], 100)).toBe("Fair");
+    expect(scorecardLabelForRadius([25, 100, 250, 500], 250)).toBe("mid minus");
+    expect(scorecardLabelForRadius([25, 100, 250, 500], 500)).toBe("garbo");
   });
 
   it("applies hint penalties without going negative", () => {

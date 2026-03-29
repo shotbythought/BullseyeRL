@@ -1,4 +1,12 @@
 export const SCORE_STEP = 1000;
+export const SCORECARD_SUCCESS_LABELS = [
+  "Bullseye",
+  "Fair",
+  "mid minus",
+  "garbo",
+] as const;
+
+export type ScorecardLabel = (typeof SCORECARD_SUCCESS_LABELS)[number] | "Miss";
 
 export function validateRadii(radii: number[]) {
   if (!radii.length) {
@@ -38,6 +46,20 @@ export function pointsForRadius(radii: number[], successfulRadius: number | null
   }
 
   return (radii.length - index) * SCORE_STEP;
+}
+
+export function scorecardLabelForRadius(radii: number[], successfulRadius: number | null): ScorecardLabel {
+  if (successfulRadius == null) {
+    return "Miss";
+  }
+
+  const index = radii.findIndex((radius) => radius === successfulRadius);
+
+  if (index < 0) {
+    throw new Error("Successful radius was not found in challenge tiers.");
+  }
+
+  return SCORECARD_SUCCESS_LABELS[Math.min(index, SCORECARD_SUCCESS_LABELS.length - 1)];
 }
 
 export function applyHintPenalty(rawPoints: number, hintPenaltyPoints: number) {

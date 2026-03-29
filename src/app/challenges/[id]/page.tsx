@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { HomeLink } from "@/components/brand-mark";
+import { ChallengeLinkShare } from "@/components/challenge-link-share";
 import { StartGameCard } from "@/components/start-game-card";
 import { StatusChip } from "@/components/status-chip";
 import { getChallengeWithRounds } from "@/lib/data/queries";
@@ -22,9 +23,7 @@ export default async function ChallengeDetailPage({
 
     return (
       <main className="space-y-6">
-        <Link className="text-sm font-semibold uppercase tracking-[0.22em] text-ink/45" href="/">
-          Home
-        </Link>
+        <HomeLink />
 
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
@@ -85,7 +84,10 @@ export default async function ChallengeDetailPage({
             </div>
           </div>
 
-          <StartGameCard challengeId={challenge.id} />
+          <div className="space-y-6">
+            <StartGameCard challengeId={challenge.id} />
+            <ChallengeLinkShare challengeId={challenge.id} />
+          </div>
         </section>
       </main>
     );

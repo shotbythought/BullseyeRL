@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrandMark } from "@/components/brand-mark";
 import { JoinGameForm } from "@/components/join-game-form";
 
 export default function HomePage() {
@@ -13,9 +14,7 @@ export default function HomePage() {
         <div className="relative grid items-center gap-8 px-6 py-8 xl:grid-cols-[1.15fr_0.85fr] xl:px-10 xl:py-10">
           <div className="space-y-8">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.34em] text-neon/80">
-                BullseyeRL
-              </p>
+              <BrandMark className="text-sm font-semibold uppercase tracking-[0.34em] text-neon/80" />
               <h1 className="mt-5 max-w-4xl text-5xl font-semibold leading-[0.9] tracking-tight sm:text-6xl xl:text-7xl">
                 Walk the city. Hit the bullseye.
               </h1>
