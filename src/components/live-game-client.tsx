@@ -483,6 +483,7 @@ export function LiveGameClient(props: { gameId: string }) {
                   : null
               }
               guesses={game.guesses}
+              mapArea={game.mapArea}
               mapBounds={game.mapBounds}
               revealTarget={activeRevealState?.target ?? null}
               roundKey={game.currentChallengeRoundId}

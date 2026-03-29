@@ -4,7 +4,7 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { useEffect, useRef, useState } from "react";
 
 import { cn, formatMeters } from "@/lib/utils";
-import type { LiveGuess, MapBounds } from "@/types/app";
+import type { LiveGuess, MapArea, MapBounds } from "@/types/app";
 
 interface GuessMapProps {
   currentPosition:
@@ -24,6 +24,7 @@ interface GuessMapProps {
       }
     | null;
   mapBounds: MapBounds;
+  mapArea: MapArea;
   roundKey: string;
   revealTarget:
     | {
@@ -35,16 +36,6 @@ interface GuessMapProps {
 }
 
 const BOUNDS_OUTLINE_COLOR = "#173f35";
-
-function getBoundsPath(bounds: MapBounds) {
-  return [
-    { lat: bounds.north, lng: bounds.west },
-    { lat: bounds.north, lng: bounds.east },
-    { lat: bounds.south, lng: bounds.east },
-    { lat: bounds.south, lng: bounds.west },
-    { lat: bounds.north, lng: bounds.west },
-  ];
-}
 
 function getMapFitPadding(container: HTMLDivElement | null) {
   if (!container) {
@@ -70,11 +61,17 @@ export function GameMap(props: GuessMapProps) {
     label: HTMLDivElement;
     accuracyOpen: boolean;
   } | null>(null);
-  const boundsAreaRef = useRef<google.maps.Rectangle | null>(null);
-  const boundsOutlineRef = useRef<google.maps.Polyline | null>(null);
+  const boundsOutlineRefs = useRef<google.maps.Polyline[]>([]);
   const playerPreviewCircleRef = useRef<google.maps.Circle | null>(null);
   const playerAccuracyCircleRef = useRef<google.maps.Circle | null>(null);
   const [mapReady, setMapReady] = useState(false);
+
+  function clearBoundaryOutlines() {
+    boundsOutlineRefs.current.forEach((outline) => {
+      outline.setMap(null);
+    });
+    boundsOutlineRefs.current = [];
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -145,14 +142,7 @@ export function GameMap(props: GuessMapProps) {
         playerMarkerRef.current = null;
       }
       playerPinUiRef.current = null;
-      if (boundsAreaRef.current) {
-        boundsAreaRef.current.setMap(null);
-        boundsAreaRef.current = null;
-      }
-      if (boundsOutlineRef.current) {
-        boundsOutlineRef.current.setMap(null);
-        boundsOutlineRef.current = null;
-      }
+      clearBoundaryOutlines();
       if (playerPreviewCircleRef.current) {
         playerPreviewCircleRef.current.setMap(null);
         playerPreviewCircleRef.current = null;
@@ -174,60 +164,40 @@ export function GameMap(props: GuessMapProps) {
       return;
     }
 
-    const bounds = {
-      north: props.mapBounds.north,
-      south: props.mapBounds.south,
-      east: props.mapBounds.east,
-      west: props.mapBounds.west,
+    const dashedSymbol: google.maps.Symbol = {
+      path: "M 0,-1 0,1",
+      scale: 4,
+      strokeColor: BOUNDS_OUTLINE_COLOR,
+      strokeOpacity: 0.9,
+      strokeWeight: 2,
     };
 
-    let boundsArea = boundsAreaRef.current;
-    if (!boundsArea) {
-      boundsArea = new googleMaps.maps.Rectangle({
-        bounds,
-        clickable: false,
-        fillOpacity: 0,
-        map,
-        strokeOpacity: 0,
-        zIndex: 1,
-      });
-      boundsAreaRef.current = boundsArea;
-    } else {
-      boundsArea.setBounds(bounds);
-      boundsArea.setMap(map);
-    }
+    clearBoundaryOutlines();
+    boundsOutlineRefs.current = props.mapArea.flatMap((polygon) =>
+      polygon.map(
+        (ring) =>
+          new googleMaps.maps.Polyline({
+            clickable: false,
+            geodesic: false,
+            icons: [
+              {
+                icon: dashedSymbol,
+                offset: "0",
+                repeat: "14px",
+              },
+            ],
+            map,
+            path: ring,
+            strokeOpacity: 0,
+            zIndex: 2,
+          }),
+      ),
+    );
 
-    const dottedSymbol: google.maps.Symbol = {
-      path: googleMaps.maps.SymbolPath.CIRCLE,
-      scale: 2,
-      fillColor: BOUNDS_OUTLINE_COLOR,
-      fillOpacity: 0.45,
-      strokeOpacity: 0,
+    return () => {
+      clearBoundaryOutlines();
     };
-
-    let boundsOutline = boundsOutlineRef.current;
-    if (!boundsOutline) {
-      boundsOutline = new googleMaps.maps.Polyline({
-        clickable: false,
-        geodesic: false,
-        icons: [
-          {
-            icon: dottedSymbol,
-            offset: "0",
-            repeat: "12px",
-          },
-        ],
-        map,
-        path: getBoundsPath(props.mapBounds),
-        strokeOpacity: 0,
-        zIndex: 2,
-      });
-      boundsOutlineRef.current = boundsOutline;
-    } else {
-      boundsOutline.setPath(getBoundsPath(props.mapBounds));
-      boundsOutline.setMap(map);
-    }
-  }, [mapReady, props.mapBounds]);
+  }, [mapReady, props.mapArea]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;

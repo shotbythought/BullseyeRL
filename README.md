@@ -36,6 +36,6 @@ BullseyeRL is a Next.js + Supabase app that turns built-in city presets into col
 
 ## Notes
 
-- The preset generator uses hardcoded city bounding boxes and validates Street View coverage before the challenge snapshot is stored.
+- The preset generator uses hardcoded city polygon geometries and validates Street View coverage before the challenge snapshot is stored.
 - The clue image is intentionally non-interactive. Players cannot move, pan, or zoom it.
 - The authoritative guess mutation path lives in the Supabase migration SQL under [supabase/migrations](supabase/migrations).

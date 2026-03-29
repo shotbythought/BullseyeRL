@@ -5,8 +5,9 @@ import {
   getGetMeCloserHintRadius,
 } from "@/lib/domain/hints";
 import {
-  getLocationPresetBounds,
-  getLocationRegionBounds,
+  getBoundsForArea,
+  getLocationPresetArea,
+  getLocationRegionArea,
 } from "@/lib/location-presets";
 import { applyHintPenalty, maxPointsForRadii } from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
@@ -19,6 +20,7 @@ import type {
   GameRoundRecord,
   GuessRecord,
   LiveGameState,
+  MapArea,
   MapBounds,
 } from "@/types/app";
 
@@ -140,7 +142,8 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
   }
 
   const playerNames = new Map((players ?? []).map((player) => [player.id, player.nickname]));
-  const mapBounds = resolveMapBounds(challenge, challengeRound);
+  const mapArea = resolveMapArea(challenge, challengeRound);
+  const mapBounds = resolveMapBounds(mapArea);
   const maxRoundPoints = maxPointsForRadii(challenge.radii_meters);
   const closerHintRadius = getGetMeCloserHintRadius(challenge.radii_meters);
   const completedRounds =
@@ -196,6 +199,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     currentRoundId: currentGameRound.id,
     currentChallengeRoundId: challengeRound.id,
     mapBounds,
+    mapArea,
     clueImageUrl: `/api/clue/${challengeRound.id}`,
     clueHeading: challengeRound.street_view_heading,
     cluePitch: challengeRound.street_view_pitch,
@@ -253,26 +257,36 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
   };
 }
 
-function resolveMapBounds(
+function resolveMapArea(
   challenge: ChallengeRecord,
   challengeRound: ChallengeRoundRecord,
-): MapBounds {
+): MapArea {
   const regionId = getSourcePayloadString(challengeRound.source_payload, "regionId");
-  const regionBounds = regionId ? getLocationRegionBounds(regionId) : null;
+  const regionArea = regionId ? getLocationRegionArea(regionId) : null;
 
-  if (regionBounds) {
-    return regionBounds;
+  if (regionArea) {
+    return regionArea;
   }
 
   const presetId =
     getSourcePayloadString(challengeRound.source_payload, "presetId") ?? challenge.source_map_id;
-  const presetBounds = getLocationPresetBounds(presetId);
+  const presetArea = getLocationPresetArea(presetId);
 
-  if (presetBounds) {
-    return presetBounds;
+  if (presetArea) {
+    return presetArea;
   }
 
-  throw new Error("Map bounds are unavailable for this round.");
+  throw new Error("Map area is unavailable for this round.");
+}
+
+function resolveMapBounds(mapArea: MapArea): MapBounds {
+  const bounds = getBoundsForArea(mapArea);
+
+  if (!bounds) {
+    throw new Error("Map bounds are unavailable for this round.");
+  }
+
+  return bounds;
 }
 
 async function getCompletedRounds(input: {

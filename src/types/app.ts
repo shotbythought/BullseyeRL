@@ -10,6 +10,15 @@ export interface MapBounds {
   east: number;
 }
 
+export interface MapCoordinate {
+  lat: number;
+  lng: number;
+}
+
+export type MapRing = MapCoordinate[];
+export type MapPolygon = MapRing[];
+export type MapArea = MapPolygon[];
+
 export interface ImportedCoordinate {
   lat: number;
   lng: number;
@@ -171,6 +180,7 @@ export interface LiveGameState {
   currentRoundId: string;
   currentChallengeRoundId: string;
   mapBounds: MapBounds;
+  mapArea: MapArea;
   clueImageUrl: string;
   clueHeading: number;
   cluePitch: number;

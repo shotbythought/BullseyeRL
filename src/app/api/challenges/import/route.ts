@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { requireBearerUser } from "@/lib/api/auth";
 import { createSeededRandom } from "@/lib/domain/random";
-import { getLocationPreset } from "@/lib/location-presets";
+import { getLocationPreset, sampleRandomPointInArea } from "@/lib/location-presets";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import { resolveStreetViewMetadata } from "@/lib/google/street-view";
 import { challengeInputSchema } from "@/lib/validation/challenge";
@@ -23,13 +23,19 @@ export async function POST(request: Request) {
     const random = createSeededRandom(seed);
     const playableRounds: Array<Record<string, unknown>> = [];
     const seenCoordinates = new Set<string>();
-    const maxAttempts = Math.max(input.locationCount * 60, 120);
+    const maxAttempts = Math.max(input.locationCount * 200, 400);
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const region = preset.regions[Math.floor(random() * preset.regions.length)];
+      const sample = sampleRandomPointInArea(region.polygons, random);
+
+      if (!sample) {
+        continue;
+      }
+
       const coordinate = {
-        lat: region.minLat + (region.maxLat - region.minLat) * random(),
-        lng: region.minLng + (region.maxLng - region.minLng) * random(),
+        lat: sample.lat,
+        lng: sample.lng,
         source: {
           presetId: preset.id,
           presetLabel: preset.label,

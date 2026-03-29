@@ -9,11 +9,17 @@ import {
   haversineDistanceMeters,
 } from "../src/lib/domain/geodesy";
 import {
+  getBoundsForArea,
   getLocationPreset,
+  getLocationPresetArea,
   getLocationPresetBounds,
   getLocationRegion,
+  getLocationRegionArea,
   getLocationRegionBounds,
   LOCATION_PRESETS,
+  pointInArea,
+  sampleRandomPointInArea,
+  type LocationArea,
 } from "../src/lib/location-presets";
 import {
   applyHintPenalty,
@@ -43,11 +49,14 @@ describe("location presets", () => {
   });
 
   it("looks up individual round regions by id", () => {
+    expect(getLocationRegion("new-york-manhattan")?.label).toBe("Manhattan");
+    expect(getLocationRegion("paris-arrondissements")?.label).toBe("Paris Arrondissements");
+    expect(getLocationRegion("san-francisco-city")?.label).toBe("San Francisco");
     expect(getLocationRegion("san-francisco-core")?.label).toBe("San Francisco");
     expect(getLocationRegion("missing")).toBeNull();
   });
 
-  it("returns stable viewport bounds for presets and regions", () => {
+  it("returns stable viewport bounds for active presets and legacy regions", () => {
     expect(getLocationRegionBounds("san-francisco-core")).toEqual({
       south: 37.7082,
       west: -122.5149,
@@ -55,11 +64,18 @@ describe("location presets", () => {
       east: -122.3791,
     });
 
+    expect(getLocationRegionBounds("san-francisco-city")).toEqual({
+      south: 37.7082,
+      west: -122.616207,
+      north: 37.929668,
+      east: -122.281458,
+    });
+
     expect(getLocationPresetBounds("san-francisco")).toEqual({
       south: 37.7082,
-      west: -122.5149,
-      north: 37.8149,
-      east: -122.3791,
+      west: -122.616207,
+      north: 37.929668,
+      east: -122.281458,
     });
 
     expect(getLocationRegionBounds("paris-core")).toEqual({
@@ -69,12 +85,86 @@ describe("location presets", () => {
       east: 2.4107,
     });
 
-    expect(getLocationPresetBounds("paris")).toEqual({
-      south: 48.8155767,
-      west: 2.2565,
-      north: 48.9021619,
-      east: 2.4107,
+    expect(getLocationRegionBounds("paris-arrondissements")).toEqual({
+      south: 48.815576,
+      west: 2.224122,
+      north: 48.902156,
+      east: 2.469704,
     });
+
+    expect(getLocationPresetBounds("paris")).toEqual({
+      south: 48.815576,
+      west: 2.224122,
+      north: 48.902156,
+      east: 2.469704,
+    });
+  });
+
+  it("exposes derived geometry areas for presets and regions", () => {
+    expect(getLocationPresetArea("global-cities")).not.toBeNull();
+    expect(getLocationPresetArea("paris")).not.toBeNull();
+    expect(getLocationRegionArea("new-york-manhattan")).not.toBeNull();
+    expect(getLocationRegionArea("new-york-core")).not.toBeNull();
+  });
+});
+
+describe("location geometry helpers", () => {
+  const testArea: LocationArea = [
+    [
+      [
+        { lat: 0, lng: 0 },
+        { lat: 0, lng: 10 },
+        { lat: 10, lng: 10 },
+        { lat: 10, lng: 0 },
+        { lat: 0, lng: 0 },
+      ],
+      [
+        { lat: 4, lng: 4 },
+        { lat: 4, lng: 6 },
+        { lat: 6, lng: 6 },
+        { lat: 6, lng: 4 },
+        { lat: 4, lng: 4 },
+      ],
+    ],
+    [
+      [
+        { lat: 20, lng: 20 },
+        { lat: 20, lng: 22 },
+        { lat: 22, lng: 22 },
+        { lat: 22, lng: 20 },
+        { lat: 20, lng: 20 },
+      ],
+    ],
+  ];
+
+  it("derives bounds from polygon and multipolygon areas", () => {
+    expect(getBoundsForArea(testArea)).toEqual({
+      south: 0,
+      west: 0,
+      north: 22,
+      east: 22,
+    });
+  });
+
+  it("detects points inside, outside, and within holes", () => {
+    expect(pointInArea({ lat: 2, lng: 2 }, testArea)).toBe(true);
+    expect(pointInArea({ lat: 5, lng: 5 }, testArea)).toBe(false);
+    expect(pointInArea({ lat: 15, lng: 15 }, testArea)).toBe(false);
+    expect(pointInArea({ lat: 21, lng: 21 }, testArea)).toBe(true);
+  });
+
+  it("samples only valid points from within polygon areas", () => {
+    let state = 123456789;
+    const random = () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 2 ** 32;
+    };
+
+    for (let index = 0; index < 25; index += 1) {
+      const point = sampleRandomPointInArea(testArea, random);
+      expect(point).not.toBeNull();
+      expect(point && pointInArea(point, testArea)).toBe(true);
+    }
   });
 });
 
