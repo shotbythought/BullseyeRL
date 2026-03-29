@@ -3,6 +3,7 @@
 import { Loader } from "@googlemaps/js-api-loader";
 import { useEffect, useRef, useState } from "react";
 
+import { cn, formatMeters } from "@/lib/utils";
 import type { LiveGuess, MapBounds } from "@/types/app";
 
 interface GuessMapProps {
@@ -30,6 +31,7 @@ interface GuessMapProps {
         lng: number;
       }
     | null;
+  className?: string;
 }
 
 export function GameMap(props: GuessMapProps) {
@@ -42,6 +44,10 @@ export function GameMap(props: GuessMapProps) {
   const hasUserMovedViewportRef = useRef(false);
   const lastRoundKeyRef = useRef<string | null>(null);
   const playerMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const playerPinUiRef = useRef<{
+    label: HTMLDivElement;
+    accuracyOpen: boolean;
+  } | null>(null);
   const playerPreviewCircleRef = useRef<google.maps.Circle | null>(null);
   const playerAccuracyCircleRef = useRef<google.maps.Circle | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -112,6 +118,7 @@ export function GameMap(props: GuessMapProps) {
         playerMarkerRef.current.map = null;
         playerMarkerRef.current = null;
       }
+      playerPinUiRef.current = null;
       if (playerPreviewCircleRef.current) {
         playerPreviewCircleRef.current.setMap(null);
         playerPreviewCircleRef.current = null;
@@ -205,6 +212,7 @@ export function GameMap(props: GuessMapProps) {
         playerMarkerRef.current.map = null;
         playerMarkerRef.current = null;
       }
+      playerPinUiRef.current = null;
       if (playerPreviewCircleRef.current) {
         playerPreviewCircleRef.current.setMap(null);
         playerPreviewCircleRef.current = null;
@@ -223,15 +231,64 @@ export function GameMap(props: GuessMapProps) {
 
     let marker = playerMarkerRef.current;
     if (!marker) {
+      const PinElement = googleMaps.maps.marker.PinElement;
+      const pin = new PinElement({
+        background: "#2f80ed",
+        borderColor: "#ffffff",
+        glyphColor: "#ffffff",
+        scale: 1.1,
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText =
+        "position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer";
+      wrapper.appendChild(pin.element);
+
+      const label = document.createElement("div");
+      label.style.cssText =
+        "position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;padding:5px 9px;background:rgba(13,22,19,0.88);color:#f5faf7;font-size:10px;font-weight:600;line-height:1.25;border-radius:8px;white-space:nowrap;pointer-events:none;display:none;box-shadow:0 2px 10px rgba(0,0,0,0.35);font-family:inherit";
+      wrapper.appendChild(label);
+
+      playerPinUiRef.current = {
+        label,
+        accuracyOpen: false,
+      };
+
+      wrapper.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const ui = playerPinUiRef.current;
+        if (!ui) {
+          return;
+        }
+        ui.accuracyOpen = !ui.accuracyOpen;
+        ui.label.style.display = ui.accuracyOpen ? "block" : "none";
+      });
+
+      const accuracyMeters = props.currentAccuracy;
+      label.textContent =
+        accuracyMeters != null
+          ? `GPS ± ${formatMeters(accuracyMeters)}`
+          : "GPS accuracy unavailable";
+
       marker = new googleMaps.maps.marker.AdvancedMarkerElement({
         map,
         position: playerLatLng,
-        title: "Your current position",
+        content: wrapper,
+        title: "Your position — tap for GPS accuracy",
+        gmpClickable: true,
       });
       playerMarkerRef.current = marker;
     } else {
       marker.map = map;
       marker.position = playerLatLng;
+      const ui = playerPinUiRef.current;
+      if (ui) {
+        const accuracyMeters = props.currentAccuracy;
+        ui.label.textContent =
+          accuracyMeters != null
+            ? `GPS ± ${formatMeters(accuracyMeters)}`
+            : "GPS accuracy unavailable";
+      }
     }
 
     const selectedRadius = props.selectedRadius;
@@ -292,6 +349,14 @@ export function GameMap(props: GuessMapProps) {
   ]);
 
   useEffect(() => {
+    const ui = playerPinUiRef.current;
+    if (ui) {
+      ui.accuracyOpen = false;
+      ui.label.style.display = "none";
+    }
+  }, [props.roundKey]);
+
+  useEffect(() => {
     const googleMaps = googleRef.current;
     const map = mapRef.current;
 
@@ -325,5 +390,10 @@ export function GameMap(props: GuessMapProps) {
     };
   }, [mapReady, props.mapBounds, props.roundKey]);
 
-  return <div className="h-[28rem] w-full overflow-hidden rounded-[0.875rem]" ref={containerRef} />;
+  return (
+    <div
+      className={cn("h-[28rem] w-full overflow-hidden rounded-[0.875rem]", props.className)}
+      ref={containerRef}
+    />
+  );
 }

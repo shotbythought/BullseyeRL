@@ -28,3 +28,26 @@ button,
 input {
   font: inherit;
 }
+
+@keyframes copy-link-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.copy-link-toast {
+  animation: copy-link-toast 2s ease-out forwards;
+}
