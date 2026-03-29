@@ -463,7 +463,7 @@ export function LiveGameClient(props: { gameId: string }) {
   return (
     <>
       <div
-        className="relative left-1/2 w-screen min-h-dvh -translate-x-1/2 bg-ink"
+        className="max-sm:fixed max-sm:inset-0 max-sm:z-[5] max-sm:h-dvh max-sm:w-full bg-ink sm:relative sm:left-1/2 sm:z-auto sm:min-h-dvh sm:w-screen sm:-translate-x-1/2"
         ref={stageRef}
       >
         <div className="absolute inset-0 z-0">
