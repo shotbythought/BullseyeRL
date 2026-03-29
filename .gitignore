@@ -7,6 +7,7 @@
 .next
 .next-dev
 .next-build
+tsconfig.tsbuildinfo
 node_modules
 coverage
 .vercel
