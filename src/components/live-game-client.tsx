@@ -2,11 +2,12 @@
 
 import { RealtimeChannel } from "@supabase/supabase-js";
 import Link from "next/link";
+
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { authorizedJsonFetch } from "@/lib/api/client";
 import type { PointHintDirection, RoundHintType } from "@/lib/domain/hints";
-import { formatCountdown, formatDurationLabel, formatMeters, formatScore } from "@/lib/utils";
+import { formatCountdown, formatMeters, formatScore } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { LiveGameState } from "@/types/app";
@@ -269,23 +270,29 @@ export function LiveGameClient(props: { gameId: string }) {
 
   if (error && !game) {
     return (
-      <div className="rounded-[2rem] border border-ember/20 bg-white/95 p-6 shadow-panel">
-        <p className="text-lg font-semibold text-ink">Unable to open this game.</p>
-        <p className="mt-2 text-sm text-ink/65">{error}</p>
-        <Link
-          className="mt-4 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white"
-          href="/"
-        >
-          Back home
-        </Link>
+      <div className="space-y-6">
+        <GamePageHeader joinCode={null} />
+        <div className="rounded-[2rem] border border-ember/20 bg-white/95 p-6 shadow-panel">
+          <p className="text-lg font-semibold text-ink">Unable to open this game.</p>
+          <p className="mt-2 text-sm text-ink/65">{error}</p>
+          <Link
+            className="mt-4 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white"
+            href="/"
+          >
+            Back home
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (!game) {
     return (
-      <div className="rounded-[2rem] border border-ink/10 bg-white/95 p-6 text-sm text-ink/65 shadow-panel">
-        Loading live game...
+      <div className="space-y-6">
+        <GamePageHeader joinCode={null} />
+        <div className="rounded-[2rem] border border-ink/10 bg-white/95 p-6 text-sm text-ink/65 shadow-panel">
+          Loading live game...
+        </div>
       </div>
     );
   }
@@ -325,11 +332,18 @@ export function LiveGameClient(props: { gameId: string }) {
   const getMeCloserHintRadius = game.radiiMeters[2] ?? null;
 
   if (game.status === "completed" && game.completedRounds && !revealState) {
-    return <GameFinishedScreen game={game} />;
+    return (
+      <div className="space-y-6">
+        <GamePageHeader joinCode={game.joinCode} />
+        <GameFinishedScreen game={game} />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <GamePageHeader joinCode={game.joinCode} />
+      <div className="space-y-5">
       <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-4 xl:grid-cols-8">
         <StatCard label="Round" value={`${game.roundIndex + 1} / ${game.roundCount}`} />
         <StatCard label="Time left" value={roundTimerValue} />
@@ -343,25 +357,14 @@ export function LiveGameClient(props: { gameId: string }) {
 
       <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-5">
-          <FixedStreetViewClue
-            fov={game.clueFov}
-            heading={game.clueHeading}
-            imageUrl={game.clueImageUrl}
-            pitch={game.cluePitch}
-          />
+          <FixedStreetViewClue imageUrl={game.clueImageUrl} />
 
           <div className="rounded-[2rem] border border-ink/10 bg-white/92 p-4 shadow-panel">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
-                  Live guess map
-                </p>
-                <p className="text-sm text-ink/65">
-                  Your blue marker is live. Green and red circles are previous team guesses.
-                </p>
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
+                Live guess map
+              </p>
               <div className="flex flex-wrap gap-2">
-                <StatusChip label={`Join ${game.joinCode}`} />
                 <StatusChip
                   label={game.status === "completed" ? "Completed" : "Live game"}
                   tone={game.status === "completed" ? "success" : "neutral"}
@@ -419,24 +422,6 @@ export function LiveGameClient(props: { gameId: string }) {
                 GPS accuracy:{" "}
                 <span className="font-semibold text-ink">
                   {formatMeters(position?.accuracy ?? null)}
-                </span>
-              </p>
-              <p>
-                Round timer:{" "}
-                <span className="font-semibold text-ink">
-                  {formatDurationLabel(game.roundTimeLimitSeconds)}
-                </span>
-              </p>
-              <p>
-                Score ceiling now:{" "}
-                <span className="font-semibold text-ink">
-                  {formatScore(game.maxAvailableRoundPoints)}
-                </span>
-              </p>
-              <p>
-                Hint penalty total:{" "}
-                <span className="font-semibold text-ink">
-                  {formatScore(game.hintPenaltyPoints)}
                 </span>
               </p>
               {geolocationError ? (
@@ -642,7 +627,98 @@ export function LiveGameClient(props: { gameId: string }) {
           </p>
         ) : null}
       </div>
+      </div>
     </div>
+  );
+}
+
+function GamePageHeader(props: { joinCode: string | null }) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+
+  async function handleCopyInviteLink() {
+    if (!props.joinCode) {
+      return;
+    }
+
+    const url = `${window.location.origin}/join/${encodeURIComponent(props.joinCode)}`;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.setAttribute("readonly", "true");
+        textarea.style.position = "absolute";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+
+      setCopyState("copied");
+      window.setTimeout(() => {
+        setCopyState("idle");
+      }, 1500);
+    } catch {
+      setCopyState("error");
+      window.setTimeout(() => {
+        setCopyState("idle");
+      }, 2000);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Link
+        className="text-sm font-semibold uppercase tracking-[0.22em] text-ink/45"
+        href="/"
+      >
+        Home
+      </Link>
+      {props.joinCode ? (
+        <button
+          aria-label={`Copy invite link for join code ${props.joinCode}`}
+          className="inline-flex max-w-full items-center gap-2.5 rounded-[1.25rem] border border-ink/15 bg-white/92 px-4 py-2.5 text-left text-sm text-ink/70 shadow-[0_1px_0_rgba(15,23,28,0.04)] transition hover:border-ink/25 hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35"
+          onClick={() => void handleCopyInviteLink()}
+          type="button"
+        >
+          <CopyInviteIcon className="h-4 w-4 shrink-0 text-ink/55" />
+          <span className="min-w-0 font-mono tracking-wide">
+            Join code: <span className="font-semibold text-ink">{props.joinCode}</span>
+            {copyState === "copied" ? (
+              <span className="ml-2 whitespace-nowrap text-xs font-medium text-emerald-700">
+                Copied
+              </span>
+            ) : null}
+            {copyState === "error" ? (
+              <span className="ml-2 whitespace-nowrap text-xs font-medium text-ember">Copy failed</span>
+            ) : null}
+          </span>
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function CopyInviteIcon(props: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      className={props.className}
+      fill="none"
+      height="16"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width="16"
+    >
+      <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
   );
 }
 

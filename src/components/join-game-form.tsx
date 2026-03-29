@@ -48,7 +48,6 @@ export function JoinGameForm(props?: { defaultJoinCode?: string }) {
       />
       <input
         className="w-full rounded-3xl border border-ink/10 bg-white px-5 py-4 text-base outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
-        defaultValue="Scout"
         name="nickname"
         placeholder="Nickname"
         required
