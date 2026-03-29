@@ -59,9 +59,6 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
               <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
                 {props.game.challengeTitle}
               </h1>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-white/68">
-                Final scorecard with every clue from the run.
-              </p>
               <div className="mt-6">
                 <button
                   className="inline-flex items-center rounded-full bg-neon px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-ink transition hover:bg-[#cfff45]"
