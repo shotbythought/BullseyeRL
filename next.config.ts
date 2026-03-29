@@ -11,12 +11,16 @@ const nextCommand = process.argv.find(
   (arg): arg is keyof typeof DIST_DIR_BY_COMMAND =>
     Object.hasOwn(DIST_DIR_BY_COMMAND, arg),
 );
+const isVercel = process.env.VERCEL === "1";
 
 const nextConfig: NextConfig = {
-  // Keep concurrent dev/build processes from overwriting each other's artifacts.
+  // Keep local concurrent dev/build processes from overwriting each other's
+  // artifacts, but preserve the default production output on Vercel.
   distDir:
-    process.env.NEXT_DIST_DIR ??
-    (nextCommand ? DIST_DIR_BY_COMMAND[nextCommand] : ".next"),
+    isVercel
+      ? ".next"
+      : process.env.NEXT_DIST_DIR ??
+        (nextCommand ? DIST_DIR_BY_COMMAND[nextCommand] : ".next"),
   images: {
     remotePatterns: [
       {
