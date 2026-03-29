@@ -40,11 +40,14 @@ describe("location presets", () => {
     expect(presetIds).toContain("london");
     expect(presetIds).toContain("paris");
     expect(presetIds).toContain("san-francisco");
+    expect(presetIds).toContain("san-francisco-walking");
   });
 
   it("looks up presets by id", () => {
     expect(getLocationPreset("tokyo")?.label).toBe("Tokyo");
     expect(getLocationPreset("global-cities")?.label).toBe("Mixed Global Cities");
+    expect(getLocationPreset("san-francisco-walking")?.label).toBe("SF (walking)");
+    expect(getLocationPreset("san-francisco-walking")?.regions).toHaveLength(1);
     expect(getLocationPreset("missing")).toBeNull();
   });
 
@@ -52,6 +55,7 @@ describe("location presets", () => {
     expect(getLocationRegion("new-york-manhattan")?.label).toBe("Manhattan");
     expect(getLocationRegion("paris-arrondissements")?.label).toBe("Paris Arrondissements");
     expect(getLocationRegion("san-francisco-city")?.label).toBe("San Francisco");
+    expect(getLocationRegion("san-francisco-walking-area")?.label).toBe("SF (walking)");
     expect(getLocationRegion("san-francisco-core")?.label).toBe("San Francisco");
     expect(getLocationRegion("missing")).toBeNull();
   });
@@ -65,17 +69,24 @@ describe("location presets", () => {
     });
 
     expect(getLocationRegionBounds("san-francisco-city")).toEqual({
-      south: 37.7082,
-      west: -122.616207,
-      north: 37.929668,
-      east: -122.281458,
+      south: 37.7085,
+      west: -122.513625,
+      north: 37.810548,
+      east: -122.360064,
     });
 
     expect(getLocationPresetBounds("san-francisco")).toEqual({
-      south: 37.7082,
-      west: -122.616207,
-      north: 37.929668,
-      east: -122.281458,
+      south: 37.7085,
+      west: -122.513625,
+      north: 37.810548,
+      east: -122.360064,
+    });
+
+    expect(getLocationPresetBounds("san-francisco-walking")).toEqual({
+      south: 37.73216496748512,
+      west: -122.45427136720835,
+      north: 37.776844983568594,
+      east: -122.38707873218037,
     });
 
     expect(getLocationRegionBounds("paris-core")).toEqual({
@@ -105,6 +116,24 @@ describe("location presets", () => {
     expect(getLocationPresetArea("paris")).not.toBeNull();
     expect(getLocationRegionArea("new-york-manhattan")).not.toBeNull();
     expect(getLocationRegionArea("new-york-core")).not.toBeNull();
+    expect(
+      pointInArea(
+        { lat: 37.764119571818, lng: -122.427689247364 },
+        getLocationPresetArea("san-francisco-walking")!,
+      ),
+    ).toBe(true);
+    expect(
+      pointInArea(
+        { lat: 37.7578, lng: -122.4337 },
+        getLocationPresetArea("san-francisco-walking")!,
+      ),
+    ).toBe(true);
+    expect(
+      pointInArea(
+        { lat: 37.7563, lng: -122.4287 },
+        getLocationPresetArea("san-francisco-walking")!,
+      ),
+    ).toBe(true);
   });
 });
 

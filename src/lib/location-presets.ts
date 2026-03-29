@@ -125,6 +125,7 @@ const ACTIVE_LOCATION_AREAS = {
   "london-greater-london": buildArea(RAW_LOCATION_AREAS["london-greater-london"]),
   "paris-arrondissements": buildArea(RAW_LOCATION_AREAS["paris-arrondissements"]),
   "san-francisco-city": buildArea(RAW_LOCATION_AREAS["san-francisco-city"]),
+  "san-francisco-walking": buildArea(RAW_LOCATION_AREAS["san-francisco-walking"]),
 } satisfies Record<string, LocationArea>;
 
 const LEGACY_LOCATION_REGIONS: LocationRegion[] = [
@@ -180,7 +181,7 @@ const LEGACY_LOCATION_REGIONS: LocationRegion[] = [
   },
 ];
 
-const baseCityPresets: LocationPreset[] = [
+const coreCityPresets: LocationPreset[] = [
   {
     id: "new-york",
     label: "New York City (Manhattan)",
@@ -243,21 +244,39 @@ const baseCityPresets: LocationPreset[] = [
   },
 ];
 
+const variantPresets: LocationPreset[] = [
+  {
+    id: "san-francisco-walking",
+    label: "SF (walking)",
+    description:
+      "A connected SF walking footprint covering Castro, the Castro-to-Noe connector, Noe Valley, Mission, Mission Dolores, Bernal Heights, Potrero Hill, Dogpatch, Duboce Triangle, and the Panhandle.",
+    regions: [
+      {
+        id: "san-francisco-walking-area",
+        label: "SF (walking)",
+        polygons: ACTIVE_LOCATION_AREAS["san-francisco-walking"],
+      },
+    ],
+  },
+];
+
+const pickerPresets: LocationPreset[] = [...coreCityPresets, ...variantPresets];
+
 const globalCitiesPreset: LocationPreset = {
   id: "global-cities",
   label: "Mixed Global Cities",
   description: "Randomly pull rounds from Manhattan, Tokyo's 23 wards, Greater London, Paris, and San Francisco.",
-  regions: baseCityPresets.flatMap((preset) => preset.regions),
+  regions: coreCityPresets.flatMap((preset) => preset.regions),
 };
 
-const ALL_LOCATION_PRESETS: LocationPreset[] = [globalCitiesPreset, ...baseCityPresets];
+const ALL_LOCATION_PRESETS: LocationPreset[] = [globalCitiesPreset, ...pickerPresets];
 const REGION_LOOKUP = new Map(
-  [...baseCityPresets.flatMap((preset) => preset.regions), ...LEGACY_LOCATION_REGIONS].map(
+  [...pickerPresets.flatMap((preset) => preset.regions), ...LEGACY_LOCATION_REGIONS].map(
     (region) => [region.id, region],
   ),
 );
 
-export const LOCATION_PRESETS: LocationPreset[] = baseCityPresets;
+export const LOCATION_PRESETS: LocationPreset[] = pickerPresets;
 
 export function pointInArea(point: LocationLatLng, area: LocationArea) {
   return area.some((polygon) => pointInPolygon(point, polygon));
