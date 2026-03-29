@@ -373,6 +373,7 @@ export function LiveGameClient(props: { gameId: string }) {
       return;
     }
 
+    setStageMode("map");
     setHintsOpen(false);
     setPendingAction(hintType);
     setLocalMutationPending(true);
@@ -437,6 +438,7 @@ export function LiveGameClient(props: { gameId: string }) {
     game.roundTimeLimitSeconds != null &&
     !game.roundResolved &&
     roundTimeRemainingSeconds === 0;
+  const showAdvanceAction = !!activeRevealState || roundTimerExpired;
   const getMeCloserHintRadius = game.radiiMeters[2] ?? null;
   const hudTimeLeftLine =
     game.roundTimeLimitSeconds == null
@@ -523,9 +525,7 @@ export function LiveGameClient(props: { gameId: string }) {
                   <p className="font-medium text-ember">{geolocationError}</p>
                 ) : null}
                 {roundTimerExpired ? (
-                  <p className="font-medium text-amber-800">
-                    The round timer just expired. Refreshing the reveal.
-                  </p>
+                  <p className="font-medium text-amber-800">The round timer just expired.</p>
                 ) : null}
                 {accuracyWarning ? (
                   <p className="font-medium text-amber-800">
@@ -587,7 +587,7 @@ export function LiveGameClient(props: { gameId: string }) {
                   aria-label="Radius"
                   aria-valuetext={selectedRadius != null ? formatMeters(selectedRadius) : undefined}
                   className="h-2.5 w-full cursor-grab appearance-none rounded-full bg-ink/15 [accent-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-track]:h-2.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-ink/15 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-white/95 [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-white/95 [&::-webkit-slider-thumb]:transition-[box-shadow,transform] [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-[1.06] [&::-webkit-slider-thumb]:hover:shadow-[0_4px_18px_rgba(13,22,19,0.5)] [&::-webkit-slider-thumb]:active:scale-100 [&::-webkit-slider-thumb]:active:cursor-grabbing"
-                  disabled={!!activeRevealState}
+                  disabled={!!activeRevealState || roundTimerExpired}
                   id="guess-radius-slider"
                   max={Math.max(0, game.radiiMeters.length - 1)}
                   min={0}
@@ -617,16 +617,22 @@ export function LiveGameClient(props: { gameId: string }) {
                 ))}
               </div>
             </div>
-            {activeRevealState ? (
+            {showAdvanceAction ? (
               <button
                 className="inline-flex min-h-[4.75rem] shrink-0 items-center justify-center self-stretch whitespace-nowrap rounded-xl bg-ink px-3 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-white shadow-[0_2px_16px_rgba(13,22,19,0.2)] transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0 sm:min-w-[10.5rem] sm:px-5 sm:text-sm sm:tracking-[0.22em]"
                 disabled={pending}
-                onClick={() => void handleAdvanceRound()}
+                onClick={() => {
+                  if (roundTimerExpired && !activeRevealState) {
+                    requestReloadRef.current?.();
+                    return;
+                  }
+                  void handleAdvanceRound();
+                }}
                 type="button"
               >
                 {pendingAction === "advance"
                   ? "Continuing..."
-                  : activeRevealState.isGameComplete
+                  : activeRevealState?.isGameComplete
                     ? (
                         <>
                           <span className="sm:hidden">Scorecard</span>
