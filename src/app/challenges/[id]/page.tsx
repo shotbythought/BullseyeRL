@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import { HomeLink } from "@/components/brand-mark";
 import { ChallengeLinkShare } from "@/components/challenge-link-share";
 import { StartGameCard } from "@/components/start-game-card";
 import { getChallengeWithRounds } from "@/lib/data/queries";
@@ -20,8 +19,6 @@ export default async function ChallengeDetailPage({
 
     return (
       <main className="space-y-6">
-        <HomeLink />
-
         <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
             <h1 className="text-4xl font-semibold tracking-tight text-ink">

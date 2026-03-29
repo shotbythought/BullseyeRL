@@ -1,4 +1,3 @@
-import { HomeLink } from "@/components/brand-mark";
 import { JoinGameForm } from "@/components/join-game-form";
 
 export default async function JoinGamePage({
@@ -10,8 +9,6 @@ export default async function JoinGamePage({
 
   return (
     <main className="mx-auto max-w-xl space-y-6">
-      <HomeLink />
-
       <section className="rounded-[1rem] border border-ink/10 bg-white/92 p-8 shadow-panel">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
           Join game

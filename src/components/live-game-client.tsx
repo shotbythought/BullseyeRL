@@ -543,15 +543,6 @@ export function LiveGameClient(props: { gameId: string }) {
             <div className="flex rounded-full border border-ink/12 bg-white/90 p-0.5 shadow-[0_2px_12px_rgba(13,22,19,0.12)] backdrop-blur-sm">
               <button
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
-                  stageMode === "map" ? "bg-ink text-white" : "text-ink/60 hover:text-ink"
-                }`}
-                onClick={() => setStageMode("map")}
-                type="button"
-              >
-                Map
-              </button>
-              <button
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
                   stageMode === "image" ? "bg-ink text-white" : "text-ink/60 hover:text-ink"
                 }`}
                 onClick={() => {
@@ -561,6 +552,15 @@ export function LiveGameClient(props: { gameId: string }) {
                 type="button"
               >
                 Image
+              </button>
+              <button
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] transition ${
+                  stageMode === "map" ? "bg-ink text-white" : "text-ink/60 hover:text-ink"
+                }`}
+                onClick={() => setStageMode("map")}
+                type="button"
+              >
+                Map
               </button>
             </div>
           </div>
