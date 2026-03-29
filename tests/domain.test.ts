@@ -49,17 +49,31 @@ describe("location presets", () => {
 
   it("returns stable viewport bounds for presets and regions", () => {
     expect(getLocationRegionBounds("san-francisco-core")).toEqual({
-      south: 37.7081,
+      south: 37.7082,
       west: -122.5149,
-      north: 37.8324,
-      east: -122.357,
+      north: 37.8149,
+      east: -122.3791,
     });
 
     expect(getLocationPresetBounds("san-francisco")).toEqual({
-      south: 37.7081,
+      south: 37.7082,
       west: -122.5149,
-      north: 37.8324,
-      east: -122.357,
+      north: 37.8149,
+      east: -122.3791,
+    });
+
+    expect(getLocationRegionBounds("paris-core")).toEqual({
+      south: 48.8155767,
+      west: 2.2565,
+      north: 48.9021619,
+      east: 2.4107,
+    });
+
+    expect(getLocationPresetBounds("paris")).toEqual({
+      south: 48.8155767,
+      west: 2.2565,
+      north: 48.9021619,
+      east: 2.4107,
     });
   });
 });

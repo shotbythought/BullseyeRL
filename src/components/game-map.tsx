@@ -34,6 +34,28 @@ interface GuessMapProps {
   className?: string;
 }
 
+const BOUNDS_OUTLINE_COLOR = "#173f35";
+
+function getBoundsPath(bounds: MapBounds) {
+  return [
+    { lat: bounds.north, lng: bounds.west },
+    { lat: bounds.north, lng: bounds.east },
+    { lat: bounds.south, lng: bounds.east },
+    { lat: bounds.south, lng: bounds.west },
+    { lat: bounds.north, lng: bounds.west },
+  ];
+}
+
+function getMapFitPadding(container: HTMLDivElement | null) {
+  if (!container) {
+    return 32;
+  }
+
+  const minDimension = Math.min(container.clientWidth, container.clientHeight);
+
+  return Math.max(20, Math.min(48, Math.round(minDimension * 0.06)));
+}
+
 export function GameMap(props: GuessMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const googleRef = useRef<typeof google | null>(null);
@@ -48,6 +70,8 @@ export function GameMap(props: GuessMapProps) {
     label: HTMLDivElement;
     accuracyOpen: boolean;
   } | null>(null);
+  const boundsAreaRef = useRef<google.maps.Rectangle | null>(null);
+  const boundsOutlineRef = useRef<google.maps.Polyline | null>(null);
   const playerPreviewCircleRef = useRef<google.maps.Circle | null>(null);
   const playerAccuracyCircleRef = useRef<google.maps.Circle | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -121,6 +145,14 @@ export function GameMap(props: GuessMapProps) {
         playerMarkerRef.current = null;
       }
       playerPinUiRef.current = null;
+      if (boundsAreaRef.current) {
+        boundsAreaRef.current.setMap(null);
+        boundsAreaRef.current = null;
+      }
+      if (boundsOutlineRef.current) {
+        boundsOutlineRef.current.setMap(null);
+        boundsOutlineRef.current = null;
+      }
       if (playerPreviewCircleRef.current) {
         playerPreviewCircleRef.current.setMap(null);
         playerPreviewCircleRef.current = null;
@@ -133,6 +165,69 @@ export function GameMap(props: GuessMapProps) {
       mapListenersRef.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    const googleMaps = googleRef.current;
+    const map = mapRef.current;
+
+    if (!googleMaps || !map || !mapReady) {
+      return;
+    }
+
+    const bounds = {
+      north: props.mapBounds.north,
+      south: props.mapBounds.south,
+      east: props.mapBounds.east,
+      west: props.mapBounds.west,
+    };
+
+    let boundsArea = boundsAreaRef.current;
+    if (!boundsArea) {
+      boundsArea = new googleMaps.maps.Rectangle({
+        bounds,
+        clickable: false,
+        fillOpacity: 0,
+        map,
+        strokeOpacity: 0,
+        zIndex: 1,
+      });
+      boundsAreaRef.current = boundsArea;
+    } else {
+      boundsArea.setBounds(bounds);
+      boundsArea.setMap(map);
+    }
+
+    const dottedSymbol: google.maps.Symbol = {
+      path: googleMaps.maps.SymbolPath.CIRCLE,
+      scale: 2,
+      fillColor: BOUNDS_OUTLINE_COLOR,
+      fillOpacity: 0.45,
+      strokeOpacity: 0,
+    };
+
+    let boundsOutline = boundsOutlineRef.current;
+    if (!boundsOutline) {
+      boundsOutline = new googleMaps.maps.Polyline({
+        clickable: false,
+        geodesic: false,
+        icons: [
+          {
+            icon: dottedSymbol,
+            offset: "0",
+            repeat: "12px",
+          },
+        ],
+        map,
+        path: getBoundsPath(props.mapBounds),
+        strokeOpacity: 0,
+        zIndex: 2,
+      });
+      boundsOutlineRef.current = boundsOutline;
+    } else {
+      boundsOutline.setPath(getBoundsPath(props.mapBounds));
+      boundsOutline.setMap(map);
+    }
+  }, [mapReady, props.mapBounds]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;
@@ -380,7 +475,7 @@ export function GameMap(props: GuessMapProps) {
       { lat: props.mapBounds.north, lng: props.mapBounds.east },
     );
 
-    map.fitBounds(bounds, 80);
+    map.fitBounds(bounds, getMapFitPadding(containerRef.current));
 
     const idleListener = googleMaps.maps.event.addListenerOnce(map, "idle", () => {
       viewportLockedRef.current = false;
