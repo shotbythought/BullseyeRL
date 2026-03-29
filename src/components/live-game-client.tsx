@@ -384,7 +384,6 @@ export function LiveGameClient(props: { gameId: string }) {
               closerHintCircle={game.hints.getMeCloser.circle}
               guesses={game.guesses}
               mapBounds={game.mapBounds}
-              revealRadii={activeRevealState?.radiiMeters ?? []}
               revealTarget={activeRevealState?.target ?? null}
               roundKey={game.currentChallengeRoundId}
               selectedRadius={selectedRadius}
@@ -671,12 +670,12 @@ function GamePageHeader(props: { joinCode: string | null }) {
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <Link
-        className="text-sm font-semibold uppercase tracking-[0.22em] text-ink/45"
-        href="/"
-      >
-        Home
-      </Link>
+      <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-ink/45">
+        <span aria-hidden="true" className="text-[1.15em] leading-none">
+          🎯
+        </span>
+        <span>BullseyeRL</span>
+      </span>
       {props.joinCode ? (
         <button
           aria-label={`Copy invite link for join code ${props.joinCode}`}
@@ -685,8 +684,8 @@ function GamePageHeader(props: { joinCode: string | null }) {
           type="button"
         >
           <CopyInviteIcon className="h-4 w-4 shrink-0 text-ink/55" />
-          <span className="min-w-0 font-mono tracking-wide">
-            Join code: <span className="font-semibold text-ink">{props.joinCode}</span>
+          <span className="min-w-0 font-semibold uppercase tracking-[0.22em] text-ink/70">
+            Join link
             {copyState === "copied" ? (
               <span className="ml-2 whitespace-nowrap text-xs font-medium text-emerald-700">
                 Copied
