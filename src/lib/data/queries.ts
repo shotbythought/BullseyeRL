@@ -10,7 +10,6 @@ import {
 } from "@/lib/location-presets";
 import { applyHintPenalty, maxPointsForRadii } from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
-import { getCaptainUserIdForGame } from "@/lib/temp/birthday-next-round/captain";
 import type {
   ChallengeRecord,
   ChallengeRoundRecord,
@@ -55,90 +54,89 @@ export async function getChallengeWithRounds(challengeId: string) {
 export async function getLiveGameState(gameId: string, viewerUserId: string): Promise<LiveGameState> {
   const supabase = getServiceSupabaseClient();
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("game_players")
-    .select("id")
-    .eq("game_id", gameId)
-    .eq("user_id", viewerUserId)
-    .maybeSingle<{ id: string }>();
-
-  if (membershipError || !membership) {
-    throw new Error("You are not a member of this game.");
-  }
-
   await maybeExpireCurrentRound(gameId);
 
-  const { data: game, error: gameError } = await supabase
-    .from("games")
-    .select("*")
-    .eq("id", gameId)
-    .single<GameRecord>();
-
-  if (gameError || !game) {
-    throw new Error("Game not found.");
-  }
-
-  const { data: challenge, error: challengeError } = await supabase
-    .from("challenges")
-    .select("*")
-    .eq("id", game.challenge_id)
-    .single<ChallengeRecord>();
-
-  if (challengeError || !challenge) {
-    throw new Error("Challenge not found.");
-  }
-
-  const { data: currentGameRound, error: roundError } = await supabase
-    .from("game_rounds")
-    .select("*")
-    .eq("game_id", game.id)
-    .eq("round_index", game.current_round_index)
-    .single<GameRoundRecord>();
-
-  if (roundError || !currentGameRound) {
-    throw new Error("Current round not found.");
-  }
-
-  const { data: challengeRound, error: challengeRoundError } = await supabase
-    .from("challenge_rounds")
-    .select("*")
-    .eq("id", currentGameRound.challenge_round_id)
-    .single<ChallengeRoundRecord>();
-
-  if (challengeRoundError || !challengeRound) {
-    throw new Error("Challenge round not found.");
-  }
-
-  const [{ data: guesses, error: guessesError }, { data: players, error: playersError }, { count: roundCount, error: countError }] =
+  const [{ data: players, error: playersError }, { data: game, error: gameError }] =
     await Promise.all([
       supabase
-        .from("guesses")
-        .select("*")
-        .eq("game_round_id", currentGameRound.id)
-        .order("created_at", { ascending: true })
-        .returns<GuessRecord[]>(),
-      supabase
         .from("game_players")
-        .select("id, user_id, nickname, last_seen_at")
-        .eq("game_id", game.id)
+        .select("id, user_id, nickname, last_seen_at, joined_at")
+        .eq("game_id", gameId)
         .order("joined_at", { ascending: true })
-        .returns<Pick<GamePlayerRecord, "id" | "user_id" | "nickname" | "last_seen_at">[]>(),
+        .order("user_id", { ascending: true })
+        .returns<
+          Pick<
+            GamePlayerRecord,
+            "id" | "user_id" | "nickname" | "last_seen_at" | "joined_at"
+          >[]
+        >(),
       supabase
-        .from("challenge_rounds")
-        .select("id", { count: "exact", head: true })
-        .eq("challenge_id", challenge.id),
+        .from("games")
+        .select("*")
+        .eq("id", gameId)
+        .single<GameRecord>(),
     ]);
-
-  if (guessesError) {
-    throw new Error(guessesError.message);
-  }
 
   if (playersError) {
     throw new Error(playersError.message);
   }
 
-  if (countError) {
-    throw new Error(countError.message);
+  if (!(players ?? []).some((player) => player.user_id === viewerUserId)) {
+    throw new Error("You are not a member of this game.");
+  }
+
+  if (gameError || !game) {
+    throw new Error("Game not found.");
+  }
+
+  const [
+    { data: challenge, error: challengeError },
+    { data: currentGameRound, error: roundError },
+  ] = await Promise.all([
+    supabase
+      .from("challenges")
+      .select("*")
+      .eq("id", game.challenge_id)
+      .single<ChallengeRecord>(),
+    supabase
+      .from("game_rounds")
+      .select("*")
+      .eq("game_id", game.id)
+      .eq("round_index", game.current_round_index)
+      .single<GameRoundRecord>(),
+  ]);
+
+  if (challengeError || !challenge) {
+    throw new Error("Challenge not found.");
+  }
+
+  if (roundError || !currentGameRound) {
+    throw new Error("Current round not found.");
+  }
+
+  const [
+    { data: challengeRound, error: challengeRoundError },
+    { data: guesses, error: guessesError },
+  ] = await Promise.all([
+    supabase
+      .from("challenge_rounds")
+      .select("*")
+      .eq("id", currentGameRound.challenge_round_id)
+      .single<ChallengeRoundRecord>(),
+    supabase
+      .from("guesses")
+      .select("*")
+      .eq("game_round_id", currentGameRound.id)
+      .order("created_at", { ascending: true })
+      .returns<GuessRecord[]>(),
+  ]);
+
+  if (challengeRoundError || !challengeRound) {
+    throw new Error("Challenge round not found.");
+  }
+
+  if (guessesError) {
+    throw new Error(guessesError.message);
   }
 
   const playerNames = new Map((players ?? []).map((player) => [player.id, player.nickname]));
@@ -162,8 +160,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     currentGameRound.attempts_remaining > 0 &&
     roundExpiresAtMs != null &&
     roundExpiresAtMs <= Date.now();
-
-  const viewerIsCaptain = (await getCaptainUserIdForGame(game.id)) === viewerUserId;
+  const viewerIsCaptain = (players ?? [])[0]?.user_id === viewerUserId;
 
   return {
     gameId: game.id,
@@ -172,7 +169,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     joinCode: game.join_code,
     status: game.status,
     roundIndex: currentGameRound.round_index,
-    roundCount: roundCount ?? challenge.location_count,
+    roundCount: challenge.location_count,
     attemptsRemaining: currentGameRound.attempts_remaining,
     attemptsUsed: currentGameRound.attempts_used,
     guessLimitPerRound: challenge.guess_limit_per_round,
@@ -215,7 +212,12 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
       improvedBestResult: guess.improved_best_result,
       createdAt: guess.created_at,
     })),
-    players: players ?? [],
+    players: (players ?? []).map((player) => ({
+      id: player.id,
+      user_id: player.user_id,
+      nickname: player.nickname,
+      last_seen_at: player.last_seen_at,
+    })),
     viewerIsCaptain,
     hints: {
       getMeCloser: {

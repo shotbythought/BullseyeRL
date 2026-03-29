@@ -16,12 +16,6 @@ export async function POST(
       throw new Error("Game id mismatch.");
     }
 
-    const state = await getLiveGameState(id, user.id);
-
-    if (state.roundResolved) {
-      return NextResponse.json(state);
-    }
-
     try {
       const { error } = await supabase.rpc("use_round_hint", {
         p_game_id: payload.gameId,

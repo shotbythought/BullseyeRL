@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { authorizedJsonFetch } from "@/lib/api/client";
 import type { PointHintDirection, RoundHintType } from "@/lib/domain/hints";
+import { createReloadController } from "@/lib/reload-controller";
 import { formatCountdown, formatMeters, formatScore } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -39,7 +40,9 @@ export function LiveGameClient(props: { gameId: string }) {
   >(null);
   const [revealState, setRevealState] = useState<RevealState | null>(null);
   const revealLockRef = useRef(false);
-  const loadStateRef = useRef<(() => Promise<void>) | null>(null);
+  const localMutationPendingRef = useRef(false);
+  const requestReloadRef = useRef<(() => void) | null>(null);
+  const setReloadSuppressedRef = useRef<((suppressed: boolean) => void) | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [birthdayBusy, setBirthdayBusy] = useState(false);
   const [birthdayNotice, setBirthdayNotice] = useState<string | null>(null);
@@ -51,6 +54,28 @@ export function LiveGameClient(props: { gameId: string }) {
         ? previous
         : response.radiiMeters[0] ?? null,
     );
+  }
+
+  function syncReloadSuppression() {
+    const suppressed = revealLockRef.current || localMutationPendingRef.current;
+    setReloadSuppressedRef.current?.(suppressed);
+  }
+
+  function setRevealLock(nextRevealLock: boolean) {
+    revealLockRef.current = nextRevealLock;
+    syncReloadSuppression();
+  }
+
+  function setLocalMutationPending(nextPending: boolean) {
+    localMutationPendingRef.current = nextPending;
+    syncReloadSuppression();
+  }
+
+  function applyMutationGameState(response: LiveGameState) {
+    applyGameState(response);
+    setRevealState(buildRevealState(response));
+    setRevealLock(response.roundResolved && !!response.target);
+    setError(null);
   }
 
   useEffect(() => {
@@ -79,8 +104,15 @@ export function LiveGameClient(props: { gameId: string }) {
       }
     }
 
-    loadStateRef.current = loadState;
-    void loadState();
+    const controller = createReloadController(loadState);
+    requestReloadRef.current = () => {
+      controller.request();
+    };
+    setReloadSuppressedRef.current = (suppressed) => {
+      controller.setSuppressed(suppressed);
+    };
+    controller.setSuppressed(revealLockRef.current || localMutationPendingRef.current);
+    controller.request();
 
     const subscribe = (table: string, filter: string) =>
       supabase
@@ -89,9 +121,7 @@ export function LiveGameClient(props: { gameId: string }) {
           "postgres_changes",
           { event: "*", schema: "public", table, filter },
           () => {
-            if (!revealLockRef.current) {
-              void loadState();
-            }
+            controller.request();
           },
         )
         .subscribe();
@@ -105,7 +135,9 @@ export function LiveGameClient(props: { gameId: string }) {
 
     return () => {
       mounted = false;
-      loadStateRef.current = null;
+      requestReloadRef.current = null;
+      setReloadSuppressedRef.current = null;
+      controller.dispose();
       channels.forEach((channel) => {
         void supabase.removeChannel(channel);
       });
@@ -123,7 +155,7 @@ export function LiveGameClient(props: { gameId: string }) {
       setNow(Date.now());
     }, 1000);
     const refreshTimeout = window.setTimeout(() => {
-      void loadStateRef.current?.();
+      requestReloadRef.current?.();
     }, Math.max(0, new Date(game.roundExpiresAt).getTime() - Date.now()) + 250);
 
     return () => {
@@ -138,11 +170,10 @@ export function LiveGameClient(props: { gameId: string }) {
     }
 
     setPendingAction("guess");
+    setLocalMutationPending(true);
     startTransition(async () => {
       try {
-        const response = await authorizedJsonFetch<
-          Record<string, unknown> & { reveal: RevealState | null }
-        >(`/api/games/${props.gameId}/guess`, {
+        const response = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}/guess`, {
           method: "POST",
           body: JSON.stringify({
             gameId: props.gameId,
@@ -152,29 +183,7 @@ export function LiveGameClient(props: { gameId: string }) {
             accuracyMeters: position.accuracy,
           }),
         });
-
-        if (response.reveal) {
-          revealLockRef.current = true;
-          setRevealState({
-            ...response.reveal,
-            isGameComplete: response.gameStatus === "completed",
-            timedOut: response.reveal.timedOut === true,
-          });
-
-          try {
-            const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}`);
-            applyGameState(refreshed);
-            setError(null);
-          } catch (refreshError) {
-            setError(
-              refreshError instanceof Error
-                ? refreshError.message
-                : response.gameStatus === "completed"
-                  ? "Unable to load the finished game."
-                  : "Unable to refresh the resolved round.",
-            );
-          }
-        }
+        applyMutationGameState(response);
       } catch (submissionError) {
         setError(
           submissionError instanceof Error
@@ -182,6 +191,7 @@ export function LiveGameClient(props: { gameId: string }) {
             : "Unable to submit guess.",
         );
       } finally {
+        setLocalMutationPending(false);
         setPendingAction(null);
       }
     });
@@ -204,12 +214,13 @@ export function LiveGameClient(props: { gameId: string }) {
     }
 
     if (resolvedRevealState.isGameComplete) {
-      revealLockRef.current = false;
+      setRevealLock(false);
       setRevealState(null);
       return;
     }
 
     setPendingAction("advance");
+    setLocalMutationPending(true);
     startTransition(async () => {
       try {
         const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}/advance`, {
@@ -219,10 +230,7 @@ export function LiveGameClient(props: { gameId: string }) {
           }),
         });
 
-        applyGameState(refreshed);
-        setRevealState(null);
-        revealLockRef.current = false;
-        setError(null);
+        applyMutationGameState(refreshed);
       } catch (advanceError) {
         setError(
           advanceError instanceof Error
@@ -230,6 +238,7 @@ export function LiveGameClient(props: { gameId: string }) {
             : "Unable to advance to the next round.",
         );
       } finally {
+        setLocalMutationPending(false);
         setPendingAction(null);
       }
     });
@@ -245,6 +254,7 @@ export function LiveGameClient(props: { gameId: string }) {
     }
 
     setPendingAction(hintType);
+    setLocalMutationPending(true);
     startTransition(async () => {
       try {
         const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}/hint`, {
@@ -257,13 +267,13 @@ export function LiveGameClient(props: { gameId: string }) {
           }),
         });
 
-        applyGameState(refreshed);
-        setError(null);
+        applyMutationGameState(refreshed);
       } catch (hintError) {
         setError(
           hintError instanceof Error ? hintError.message : "Unable to use that hint.",
         );
       } finally {
+        setLocalMutationPending(false);
         setPendingAction(null);
       }
     });
@@ -303,15 +313,7 @@ export function LiveGameClient(props: { gameId: string }) {
     selectedRadius != null &&
     position.accuracy > selectedRadius;
   const activeRevealState =
-    revealState ??
-    (game.roundResolved && game.target
-      ? {
-          target: game.target,
-          radiiMeters: game.radiiMeters,
-          isGameComplete: game.status === "completed",
-          timedOut: game.roundTimedOut,
-        }
-      : null);
+    revealState ?? buildRevealState(game);
   const roundTimeRemainingSeconds =
     game.roundExpiresAt == null
       ? null
@@ -666,6 +668,19 @@ export function LiveGameClient(props: { gameId: string }) {
       </div>
     </div>
   );
+}
+
+function buildRevealState(game: LiveGameState): RevealState | null {
+  if (!game.roundResolved || !game.target) {
+    return null;
+  }
+
+  return {
+    target: game.target,
+    radiiMeters: game.radiiMeters,
+    isGameComplete: game.status === "completed",
+    timedOut: game.roundTimedOut,
+  };
 }
 
 function GamePageHeader(props: { joinCode: string | null }) {

@@ -16,12 +16,6 @@ export async function POST(
       throw new Error("Game id mismatch.");
     }
 
-    const state = await getLiveGameState(id, user.id);
-
-    if (state.roundResolved) {
-      return NextResponse.json(buildResolvedRoundResponse(state));
-    }
-
     try {
       const { data, error } = await supabase.rpc("submit_guess", {
         p_game_id: payload.gameId,
@@ -34,30 +28,18 @@ export async function POST(
       if (error || !data) {
         throw new Error(error?.message ?? "Guess submission failed.");
       }
-
-      if (!data.roundResolved) {
-        return NextResponse.json({
-          ...data,
-          reveal: null,
-        });
-      }
-
-      const refreshedState = await getLiveGameState(id, user.id);
-
-      return NextResponse.json({
-        ...data,
-        gameStatus: refreshedState.status,
-        reveal: buildReveal(refreshedState),
-      });
     } catch (error) {
       const refreshedState = await getLiveGameState(id, user.id);
 
       if (refreshedState.roundResolved) {
-        return NextResponse.json(buildResolvedRoundResponse(refreshedState));
+        return NextResponse.json(refreshedState);
       }
 
       throw error;
     }
+
+    const refreshedState = await getLiveGameState(id, user.id);
+    return NextResponse.json(refreshedState);
   } catch (error) {
     return NextResponse.json(
       {
@@ -66,30 +48,4 @@ export async function POST(
       { status: 400 },
     );
   }
-}
-
-function buildReveal(state: Awaited<ReturnType<typeof getLiveGameState>>) {
-  if (!state.target) {
-    return null;
-  }
-
-  return {
-    target: state.target,
-    radiiMeters: state.radiiMeters,
-    timedOut: state.roundTimedOut,
-  };
-}
-
-function buildResolvedRoundResponse(state: Awaited<ReturnType<typeof getLiveGameState>>) {
-  return {
-    roundResolved: true,
-    gameStatus: state.status,
-    teamScore: state.teamScore,
-    currentRoundIndex: state.roundIndex,
-    attemptsRemaining: state.attemptsRemaining,
-    provisionalPoints: state.provisionalRoundPoints,
-    bestSuccessfulRadiusMeters: state.bestSuccessfulRadiusMeters,
-    timedOut: state.roundTimedOut,
-    reveal: buildReveal(state),
-  };
 }
