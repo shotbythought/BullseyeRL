@@ -42,6 +42,9 @@ export function GameMap(props: GuessMapProps) {
   const viewportLockedRef = useRef(false);
   const hasUserMovedViewportRef = useRef(false);
   const lastRoundKeyRef = useRef<string | null>(null);
+  const playerMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const playerPreviewCircleRef = useRef<google.maps.Circle | null>(null);
+  const playerAccuracyCircleRef = useRef<google.maps.Circle | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -106,6 +109,18 @@ export function GameMap(props: GuessMapProps) {
       cancelled = true;
       overlaysRef.current.forEach((dispose) => dispose());
       overlaysRef.current = [];
+      if (playerMarkerRef.current) {
+        playerMarkerRef.current.map = null;
+        playerMarkerRef.current = null;
+      }
+      if (playerPreviewCircleRef.current) {
+        playerPreviewCircleRef.current.setMap(null);
+        playerPreviewCircleRef.current = null;
+      }
+      if (playerAccuracyCircleRef.current) {
+        playerAccuracyCircleRef.current.setMap(null);
+        playerAccuracyCircleRef.current = null;
+      }
       mapListenersRef.current.forEach((dispose) => dispose());
       mapListenersRef.current = [];
     };
@@ -121,56 +136,6 @@ export function GameMap(props: GuessMapProps) {
 
     overlaysRef.current.forEach((dispose) => dispose());
     overlaysRef.current = [];
-
-    if (props.currentPosition) {
-      const playerLatLng = {
-        lat: props.currentPosition.latitude,
-        lng: props.currentPosition.longitude,
-      };
-
-      const playerMarker = new googleMaps.maps.marker.AdvancedMarkerElement({
-        map,
-        position: playerLatLng,
-        title: "Your current position",
-      });
-
-      overlaysRef.current.push(() => {
-        playerMarker.map = null;
-      });
-
-      if (props.selectedRadius) {
-        const previewCircle = new googleMaps.maps.Circle({
-          map,
-          center: playerLatLng,
-          radius: props.selectedRadius,
-          fillColor: "#2f80ed",
-          fillOpacity: 0.18,
-          strokeColor: "#2f80ed",
-          strokeWeight: 2,
-        });
-
-        overlaysRef.current.push(() => {
-          previewCircle.setMap(null);
-        });
-      }
-
-      if (props.currentAccuracy) {
-        const accuracyCircle = new googleMaps.maps.Circle({
-          map,
-          center: playerLatLng,
-          radius: props.currentAccuracy,
-          fillColor: "#6d7f77",
-          fillOpacity: 0.08,
-          strokeColor: "#6d7f77",
-          strokeOpacity: 0.4,
-          strokeWeight: 1,
-        });
-
-        overlaysRef.current.push(() => {
-          accuracyCircle.setMap(null);
-        });
-      }
-    }
 
     props.guesses.forEach((guess) => {
       const center = {
@@ -240,14 +205,104 @@ export function GameMap(props: GuessMapProps) {
         });
       });
     }
+  }, [props.closerHintCircle, props.guesses, mapReady, props.revealRadii, props.revealTarget]);
+
+  useEffect(() => {
+    const googleMaps = googleRef.current;
+    const map = mapRef.current;
+
+    if (!googleMaps || !map || !mapReady) {
+      return;
+    }
+
+    const position = props.currentPosition;
+    if (!position) {
+      if (playerMarkerRef.current) {
+        playerMarkerRef.current.map = null;
+        playerMarkerRef.current = null;
+      }
+      if (playerPreviewCircleRef.current) {
+        playerPreviewCircleRef.current.setMap(null);
+        playerPreviewCircleRef.current = null;
+      }
+      if (playerAccuracyCircleRef.current) {
+        playerAccuracyCircleRef.current.setMap(null);
+        playerAccuracyCircleRef.current = null;
+      }
+      return;
+    }
+
+    const playerLatLng = {
+      lat: position.latitude,
+      lng: position.longitude,
+    };
+
+    let marker = playerMarkerRef.current;
+    if (!marker) {
+      marker = new googleMaps.maps.marker.AdvancedMarkerElement({
+        map,
+        position: playerLatLng,
+        title: "Your current position",
+      });
+      playerMarkerRef.current = marker;
+    } else {
+      marker.map = map;
+      marker.position = playerLatLng;
+    }
+
+    const selectedRadius = props.selectedRadius;
+    if (selectedRadius) {
+      let preview = playerPreviewCircleRef.current;
+      if (!preview) {
+        preview = new googleMaps.maps.Circle({
+          map,
+          center: playerLatLng,
+          radius: selectedRadius,
+          fillColor: "#2f80ed",
+          fillOpacity: 0.18,
+          strokeColor: "#2f80ed",
+          strokeWeight: 2,
+        });
+        playerPreviewCircleRef.current = preview;
+      } else {
+        preview.setMap(map);
+        preview.setCenter(playerLatLng);
+        preview.setRadius(selectedRadius);
+      }
+    } else if (playerPreviewCircleRef.current) {
+      playerPreviewCircleRef.current.setMap(null);
+      playerPreviewCircleRef.current = null;
+    }
+
+    const accuracyMeters = props.currentAccuracy;
+    if (accuracyMeters) {
+      let accuracyCircle = playerAccuracyCircleRef.current;
+      if (!accuracyCircle) {
+        accuracyCircle = new googleMaps.maps.Circle({
+          map,
+          center: playerLatLng,
+          radius: accuracyMeters,
+          fillColor: "#6d7f77",
+          fillOpacity: 0.08,
+          strokeColor: "#6d7f77",
+          strokeOpacity: 0.4,
+          strokeWeight: 1,
+        });
+        playerAccuracyCircleRef.current = accuracyCircle;
+      } else {
+        accuracyCircle.setMap(map);
+        accuracyCircle.setCenter(playerLatLng);
+        accuracyCircle.setRadius(accuracyMeters);
+      }
+    } else if (playerAccuracyCircleRef.current) {
+      playerAccuracyCircleRef.current.setMap(null);
+      playerAccuracyCircleRef.current = null;
+    }
   }, [
-    props.closerHintCircle,
-    props.currentAccuracy,
-    props.currentPosition,
-    props.guesses,
     mapReady,
-    props.revealRadii,
-    props.revealTarget,
+    props.currentAccuracy,
+    props.currentPosition?.latitude,
+    props.currentPosition?.longitude,
     props.selectedRadius,
   ]);
 
