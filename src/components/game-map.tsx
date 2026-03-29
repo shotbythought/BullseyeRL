@@ -81,6 +81,8 @@ export function GameMap(props: GuessMapProps) {
         center: { lat: 37.7749, lng: -122.4194 },
         zoom: 11,
         mapId: "bullseyerl-live-map",
+        // One-finger pan on mobile; "cooperative" reserves one finger for page scroll (two-finger map).
+        gestureHandling: "greedy",
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: false,

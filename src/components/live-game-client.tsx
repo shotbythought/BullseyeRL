@@ -75,7 +75,7 @@ export function LiveGameClient(props: { gameId: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [birthdayBusy, setBirthdayBusy] = useState(false);
   const [birthdayNotice, setBirthdayNotice] = useState<string | null>(null);
-  const [stageMode, setStageMode] = useState<StageMode>("map");
+  const [stageMode, setStageMode] = useState<StageMode>("image");
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guessConfirmOpen, setGuessConfirmOpen] = useState(false);
   const [hudOffsetTop, setHudOffsetTop] = useState(HUD_INSET_PX);
@@ -243,17 +243,16 @@ export function LiveGameClient(props: { gameId: string }) {
       }
       const sr = stage.getBoundingClientRect();
       const tr = toggle.getBoundingClientRect();
+      const hr = hud.getBoundingClientRect();
       const w = hud.offsetWidth;
       const h = hud.offsetHeight;
 
       let top = HUD_INSET_PX;
-      const hudLeft = sr.left + HUD_INSET_PX;
-      const hudTop = sr.top + top;
       const hudRect = {
-        left: hudLeft,
-        top: hudTop,
-        right: hudLeft + w,
-        bottom: hudTop + h,
+        left: hr.left,
+        top: sr.top + top,
+        right: hr.left + w,
+        bottom: sr.top + top + h,
       };
 
       if (rectsOverlapViewport(hudRect, tr, HUD_TOGGLE_GAP_PX)) {
@@ -447,7 +446,7 @@ export function LiveGameClient(props: { gameId: string }) {
         : game.roundResolved
           ? "Resolved"
           : `${formatCountdown(roundTimeRemainingSeconds)} left`;
-  const hudRoundLine = `round ${game.roundIndex + 1}/${game.roundCount}`;
+  const hudRoundLine = `Round ${game.roundIndex + 1}/${game.roundCount}`;
 
   if (game.status === "completed" && game.completedRounds && !revealState) {
     return <GameFinishedScreen game={game} />;
@@ -464,7 +463,7 @@ export function LiveGameClient(props: { gameId: string }) {
   return (
     <>
       <div
-        className="relative left-1/2 w-screen min-h-[calc(100dvh-5.5rem)] -translate-x-1/2 bg-ink"
+        className="relative left-1/2 w-screen min-h-dvh -translate-x-1/2 bg-ink"
         ref={stageRef}
       >
         <div className="absolute inset-0 z-0">
@@ -494,22 +493,22 @@ export function LiveGameClient(props: { gameId: string }) {
 
         <div className="pointer-events-none absolute inset-0 z-10">
           <div
-            className="pointer-events-auto absolute max-h-[min(42vh,calc(100dvh-16rem))] max-w-[min(calc(100vw-8rem),15rem)] space-y-1 overflow-y-auto rounded-[0.625rem] border border-ink/10 bg-white px-2 py-1.5 pr-1 shadow-[0_2px_12px_rgba(13,22,19,0.12)]"
+            className="pointer-events-auto absolute left-3 max-h-[min(42vh,calc(100dvh-16rem))] max-w-[min(calc(100vw-8rem),15rem)] space-y-1 overflow-y-auto rounded-[0.625rem] border border-ink/10 bg-white px-2 py-1.5 pr-1 shadow-[0_2px_12px_rgba(13,22,19,0.12)] sm:left-4 sm:max-h-[min(46vh,calc(100dvh-15rem))] sm:max-w-[min(calc(100vw-9rem),19rem)] sm:space-y-1.5 sm:rounded-lg sm:px-3 sm:py-2 sm:pr-1.5 lg:left-5 lg:max-h-[min(50vh,calc(100dvh-13rem))] lg:max-w-[min(calc(100vw-14rem),26rem)] lg:space-y-2 lg:rounded-xl lg:px-4 lg:py-2.5 lg:pr-2"
             ref={hudRef}
-            style={{ left: HUD_INSET_PX, top: hudOffsetTop }}
+            style={{ top: hudOffsetTop }}
           >
-            <p className="text-[0.62rem] font-medium leading-snug tracking-wide text-ink">
+            <p className="text-[0.62rem] font-medium leading-snug tracking-wide text-ink sm:text-xs lg:text-sm">
               {hudRoundLine}
             </p>
-            <p className="text-[0.62rem] font-semibold leading-snug tabular-nums text-ink">
+            <p className="text-[0.62rem] font-semibold leading-snug tabular-nums text-ink sm:text-xs lg:text-sm">
               {hudTimeLeftLine}
             </p>
             <AttemptTrack guesses={game.guesses} limit={game.guessLimitPerRound} />
-            <div className="flex flex-wrap gap-x-1.5 gap-y-0.5 border-t border-ink/10 pt-1">
+            <div className="flex flex-wrap gap-x-1.5 gap-y-0.5 border-t border-ink/10 pt-1 sm:gap-x-2 sm:pt-1.5">
               {game.players.map((player, index) => (
                 <span
                   className={cn(
-                    "text-[0.58rem] font-semibold tracking-[0.03em]",
+                    "text-[0.58rem] font-semibold tracking-[0.03em] sm:text-[0.65rem] lg:text-xs",
                     PLAYER_PANEL_COLORS[index % PLAYER_PANEL_COLORS.length],
                   )}
                   key={player.id}
@@ -519,7 +518,7 @@ export function LiveGameClient(props: { gameId: string }) {
               ))}
             </div>
             {geolocationError || roundTimerExpired || accuracyWarning ? (
-              <div className="space-y-0.5 border-t border-ink/10 pt-1 text-[0.58rem] leading-snug text-ink/70">
+              <div className="space-y-0.5 border-t border-ink/10 pt-1 text-[0.58rem] leading-snug text-ink/70 sm:pt-1.5 sm:text-xs lg:text-sm">
                 {geolocationError ? (
                   <p className="font-medium text-ember">{geolocationError}</p>
                 ) : null}
@@ -534,13 +533,6 @@ export function LiveGameClient(props: { gameId: string }) {
                   </p>
                 ) : null}
               </div>
-            ) : null}
-            {activeRevealState ? (
-              <p className="border-t border-ink/10 pt-1 text-[0.58rem] leading-snug text-ink/65">
-                {activeRevealState.timedOut
-                  ? "Time expired for this round. Review the reveal on the map, then continue when your team is ready."
-                  : "Review the reveal on the map, then continue when your team is ready."}
-              </p>
             ) : null}
           </div>
 
@@ -573,28 +565,16 @@ export function LiveGameClient(props: { gameId: string }) {
             </div>
           </div>
 
-          <div className="pointer-events-auto absolute right-3 top-3 flex max-w-[calc(100%-8rem)] flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <InviteIconButton joinCode={game.joinCode} />
-              <button
-                aria-label="Hint options"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink/12 bg-white/90 text-ink shadow-[0_2px_12px_rgba(13,22,19,0.12)] backdrop-blur-sm transition hover:border-ink/20 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35"
-                onClick={() => setHintsOpen(true)}
-                type="button"
-              >
-                <LightbulbIcon className="h-5 w-5" />
-              </button>
-            </div>
-            <BirthdaySetNextRoundButton
-              compact
-              disabled={birthdayBusy || game.status === "completed"}
-              gameId={props.gameId}
-              hasNextRound={game.roundIndex + 1 < game.roundCount}
-              onBusyChange={setBirthdayBusy}
-              onMessage={setBirthdayNotice}
-              pending={birthdayBusy}
-              viewerIsCaptain={game.viewerIsCaptain}
-            />
+          <div className="pointer-events-auto absolute right-3 top-3 flex max-w-[calc(100%-8rem)] flex-wrap items-center justify-end gap-2">
+            <InviteIconButton joinCode={game.joinCode} />
+            <button
+              aria-label="Hint options"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink/12 bg-white/90 text-ink shadow-[0_2px_12px_rgba(13,22,19,0.12)] backdrop-blur-sm transition hover:border-ink/20 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35"
+              onClick={() => setHintsOpen(true)}
+              type="button"
+            >
+              <LightbulbIcon className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
@@ -716,7 +696,7 @@ export function LiveGameClient(props: { gameId: string }) {
                 Your reported accuracy is worse than the selected radius. You can still submit.
               </p>
             ) : null}
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-6 flex flex-row items-center justify-between gap-3">
               <button
                 className="inline-flex justify-center rounded-xl border border-ink/15 bg-mist px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-ink/80 transition hover:border-ink/25 hover:text-ink"
                 onClick={() => setGuessConfirmOpen(false)}
@@ -819,6 +799,19 @@ export function LiveGameClient(props: { gameId: string }) {
                 title="Point me"
               />
             </div>
+            {game.viewerIsCaptain && game.roundIndex + 1 < game.roundCount ? (
+              <div className="mt-4 border-t border-ink/10 pt-4">
+                <BirthdaySetNextRoundButton
+                  disabled={birthdayBusy || game.status === "completed"}
+                  gameId={props.gameId}
+                  hasNextRound
+                  onBusyChange={setBirthdayBusy}
+                  onMessage={setBirthdayNotice}
+                  pending={birthdayBusy}
+                  viewerIsCaptain
+                />
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -836,7 +829,7 @@ function AttemptTrack(props: { guesses: LiveGuess[]; limit: number }) {
   return (
     <div
       aria-label={ariaLabel}
-      className="flex min-h-[1rem] flex-wrap items-center gap-1 leading-none"
+      className="flex min-h-[1rem] flex-wrap items-center gap-1 leading-none sm:min-h-[1.125rem] sm:gap-1.5 lg:min-h-[1.25rem]"
       role="group"
     >
       {Array.from({ length: limit }, (_, i) => {
@@ -844,7 +837,7 @@ function AttemptTrack(props: { guesses: LiveGuess[]; limit: number }) {
         if (!guess) {
           return (
             <span
-              className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.7rem] text-ink/30"
+              className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.7rem] text-ink/30 sm:h-4 sm:w-4 sm:text-xs lg:h-[1.125rem] lg:w-[1.125rem]"
               key={`slot-${i}`}
               title="Unused guess"
             >
@@ -855,7 +848,7 @@ function AttemptTrack(props: { guesses: LiveGuess[]; limit: number }) {
         if (guess.isSuccess) {
           return (
             <span
-              className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.7rem] font-semibold text-moss"
+              className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.7rem] font-semibold text-moss sm:h-4 sm:w-4 sm:text-xs lg:h-[1.125rem] lg:w-[1.125rem]"
               key={guess.id}
               title="Hit"
             >
@@ -865,7 +858,7 @@ function AttemptTrack(props: { guesses: LiveGuess[]; limit: number }) {
         }
         return (
           <span
-            className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.75rem] font-semibold leading-none text-ember"
+            className="inline-flex h-3.5 w-3.5 select-none items-center justify-center text-[0.75rem] font-semibold leading-none text-ember sm:h-4 sm:w-4 sm:text-sm lg:h-[1.125rem] lg:w-[1.125rem]"
             key={guess.id}
             title="Miss"
           >
@@ -950,7 +943,7 @@ function InviteIconButton(props: { joinCode: string }) {
             copyState === "copied" ? "scale-50 opacity-0" : "scale-100 opacity-100"
           }`}
         >
-          <CopyInviteIcon className="h-5 w-5 text-ink/70" />
+          <SharePostIcon className="h-5 w-5 text-ink/70" />
         </span>
         <span
           className={`absolute inset-0 flex items-center justify-center transition-all duration-200 ${
@@ -963,7 +956,7 @@ function InviteIconButton(props: { joinCode: string }) {
       {copyState === "copied" ? (
         <span
           aria-live="polite"
-          className="copy-link-toast pointer-events-none absolute top-full z-30 mt-1.5 whitespace-nowrap rounded-md bg-ink/88 px-2 py-1 text-[0.7rem] font-medium text-white shadow-md"
+          className="copy-link-toast pointer-events-none absolute top-full z-30 mt-1.5 whitespace-nowrap rounded-md border border-white/15 bg-ink px-2 py-1 text-[0.7rem] font-semibold text-white shadow-[0_2px_12px_rgba(13,22,19,0.45)]"
         >
           Link copied
         </span>
@@ -992,22 +985,38 @@ function CheckCircleIcon(props: { className?: string }) {
   );
 }
 
-function CopyInviteIcon(props: { className?: string }) {
+/** Share — three nodes with two branches (classic share-post glyph). */
+function SharePostIcon(props: { className?: string }) {
   return (
     <svg
       aria-hidden
       className={props.className}
       fill="none"
-      height="16"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
+      height="24"
       viewBox="0 0 24 24"
-      width="16"
+      width="24"
     >
-      <rect height="13" rx="2" ry="2" width="13" x="9" y="9" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      <line
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2.25"
+        x1="8.35"
+        x2="15.95"
+        y1="10.35"
+        y2="6.55"
+      />
+      <line
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2.25"
+        x1="8.35"
+        x2="15.95"
+        y1="13.65"
+        y2="17.45"
+      />
+      <circle cx="6" cy="12" fill="currentColor" r="2.4" />
+      <circle cx="18" cy="6.55" fill="currentColor" r="2.4" />
+      <circle cx="18" cy="17.45" fill="currentColor" r="2.4" />
     </svg>
   );
 }

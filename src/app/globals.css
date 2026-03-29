@@ -32,19 +32,15 @@ input {
 @keyframes copy-link-toast {
   0% {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
-  14% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  72% {
+  12% {
     opacity: 1;
     transform: translateY(0);
   }
   100% {
-    opacity: 0;
-    transform: translateY(-4px);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
