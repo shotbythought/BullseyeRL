@@ -26,7 +26,7 @@ export function CreateChallengeForm() {
     const formData = new FormData(event.currentTarget);
     const payload = {
       presetId: String(formData.get("presetId") ?? ""),
-      locationCount: Number(formData.get("locationCount") ?? 5),
+      locationCount: Number(formData.get("locationCount") ?? 3),
       guessLimitPerRound: Number(formData.get("guessLimitPerRound") ?? 5),
       roundTimeLimitSeconds: timerEnabled
         ? Number(formData.get("roundTimeLimitMinutes") ?? 60) * 60
@@ -84,7 +84,7 @@ export function CreateChallengeForm() {
           </label>
           <input
             className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
-            defaultValue={5}
+            defaultValue={3}
             id="locationCount"
             max={50}
             min={1}
@@ -100,7 +100,7 @@ export function CreateChallengeForm() {
           </label>
           <input
             className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
-            defaultValue={4}
+            defaultValue={5}
             id="guessLimitPerRound"
             max={50}
             min={1}
@@ -151,10 +151,10 @@ export function CreateChallengeForm() {
         </label>
         <input
           className="w-full rounded-3xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
-          defaultValue="50,150,2000,5000"
+          defaultValue="50,500,2000,5000"
           id="radiiMeters"
           name="radiiMeters"
-          placeholder="50,150,2000,5000"
+          placeholder="50,500,2000,5000"
           required
           type="text"
         />
