@@ -147,6 +147,8 @@ export interface LiveGameState {
   clueFov: number;
   guesses: LiveGuess[];
   players: Pick<GamePlayerRecord, "id" | "nickname" | "user_id" | "last_seen_at">[];
+  /** First joiner (game creator). */
+  viewerIsCaptain: boolean;
   roundResolved: boolean;
   completedRounds: CompletedGameRound[] | null;
   target:

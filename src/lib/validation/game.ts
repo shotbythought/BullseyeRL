@@ -21,3 +21,7 @@ export const submitGuessSchema = z.object({
 export const advanceRoundSchema = z.object({
   gameId: z.string().uuid(),
 });
+
+export const setNextRoundSchema = z.object({
+  gameId: z.string().uuid(),
+});

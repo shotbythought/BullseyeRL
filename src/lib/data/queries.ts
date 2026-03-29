@@ -5,6 +5,7 @@ import {
 } from "@/lib/location-presets";
 import { SCORE_STEP } from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
+import { getCaptainUserIdForGame } from "@/lib/temp/birthday-next-round/captain";
 import type {
   ChallengeRecord,
   ChallengeRoundRecord,
@@ -155,6 +156,8 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     roundExpiresAtMs != null &&
     roundExpiresAtMs <= Date.now();
 
+  const viewerIsCaptain = (await getCaptainUserIdForGame(game.id)) === viewerUserId;
+
   return {
     gameId: game.id,
     challengeId: challenge.id,
@@ -201,6 +204,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
       createdAt: guess.created_at,
     })),
     players: players ?? [],
+    viewerIsCaptain,
     roundResolved: currentGameRound.resolved,
     completedRounds,
     target: currentGameRound.resolved

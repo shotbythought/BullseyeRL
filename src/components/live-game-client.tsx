@@ -9,6 +9,7 @@ import { formatCountdown, formatDurationLabel, formatMeters, formatScore } from 
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { LiveGameState } from "@/types/app";
+import { BirthdaySetNextRoundButton } from "@/components/temp/birthday-set-next-round-button";
 import { FixedStreetViewClue } from "@/components/fixed-street-view-clue";
 import { GameFinishedScreen } from "@/components/game-finished-screen";
 import { GameMap } from "@/components/game-map";
@@ -34,6 +35,8 @@ export function LiveGameClient(props: { gameId: string }) {
   const revealLockRef = useRef(false);
   const loadStateRef = useRef<(() => Promise<void>) | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [birthdayBusy, setBirthdayBusy] = useState(false);
+  const [birthdayNotice, setBirthdayNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -489,6 +492,29 @@ export function LiveGameClient(props: { gameId: string }) {
             </div>
           </div>
         </aside>
+      </div>
+
+      <div className="space-y-2">
+        <BirthdaySetNextRoundButton
+          disabled={birthdayBusy || game.status === "completed"}
+          gameId={props.gameId}
+          hasNextRound={game.roundIndex + 1 < game.roundCount}
+          onBusyChange={setBirthdayBusy}
+          onMessage={setBirthdayNotice}
+          pending={birthdayBusy}
+          viewerIsCaptain={game.viewerIsCaptain}
+        />
+        {birthdayNotice ? (
+          <p
+            className={`text-center text-sm ${
+              birthdayNotice === "Next round updated."
+                ? "text-emerald-800"
+                : "text-ember"
+            }`}
+          >
+            {birthdayNotice}
+          </p>
+        ) : null}
       </div>
     </div>
   );
