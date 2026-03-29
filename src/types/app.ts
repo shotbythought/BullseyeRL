@@ -1,3 +1,5 @@
+import type { PointHintDirection } from "@/lib/domain/hints";
+
 export type ChallengeStatus = "draft" | "ready" | "failed";
 export type GameStatus = "lobby" | "in_progress" | "completed";
 
@@ -75,6 +77,13 @@ export interface GameRoundRecord {
   attempts_used: number;
   attempts_remaining: number;
   best_successful_radius_meters: number | null;
+  hint_penalty_points: number;
+  closer_hint_used: boolean;
+  closer_hint_center_lat: number | null;
+  closer_hint_center_lng: number | null;
+  closer_hint_radius_meters: number | null;
+  point_hint_used: boolean;
+  point_hint_direction: PointHintDirection | null;
   provisional_points: number;
   resolved: boolean;
   resolved_at: string | null;
@@ -117,6 +126,25 @@ export interface CompletedGameRound {
   bestSuccessfulRadiusMeters: number | null;
 }
 
+export interface HintCircle {
+  lat: number;
+  lng: number;
+  radiusMeters: number;
+}
+
+export interface GetMeCloserHintState {
+  costPoints: number;
+  isAvailable: boolean;
+  used: boolean;
+  circle: HintCircle | null;
+}
+
+export interface PointMeHintState {
+  costPoints: number;
+  used: boolean;
+  direction: PointHintDirection | null;
+}
+
 export interface LiveGameState {
   gameId: string;
   challengeId: string;
@@ -135,6 +163,8 @@ export interface LiveGameState {
   roundTimedOut: boolean;
   radiiMeters: number[];
   bestSuccessfulRadiusMeters: number | null;
+  hintPenaltyPoints: number;
+  maxAvailableRoundPoints: number;
   provisionalRoundPoints: number;
   maxRoundPoints: number;
   teamScore: number;
@@ -149,6 +179,10 @@ export interface LiveGameState {
   players: Pick<GamePlayerRecord, "id" | "nickname" | "user_id" | "last_seen_at">[];
   /** First joiner (game creator). */
   viewerIsCaptain: boolean;
+  hints: {
+    getMeCloser: GetMeCloserHintState;
+    pointMe: PointMeHintState;
+  };
   roundResolved: boolean;
   completedRounds: CompletedGameRound[] | null;
   target:

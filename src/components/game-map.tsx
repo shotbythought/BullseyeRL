@@ -15,6 +15,13 @@ interface GuessMapProps {
   currentAccuracy: number | null;
   selectedRadius: number | null;
   guesses: LiveGuess[];
+  closerHintCircle:
+    | {
+        lat: number;
+        lng: number;
+        radiusMeters: number;
+      }
+    | null;
   mapBounds: MapBounds;
   roundKey: string;
   revealTarget:
@@ -186,6 +193,26 @@ export function GameMap(props: GuessMapProps) {
       });
     });
 
+    if (props.closerHintCircle) {
+      const hintCircle = new googleMaps.maps.Circle({
+        map,
+        center: {
+          lat: props.closerHintCircle.lat,
+          lng: props.closerHintCircle.lng,
+        },
+        radius: props.closerHintCircle.radiusMeters,
+        fillColor: "#f4c542",
+        fillOpacity: 0.14,
+        strokeColor: "#b58a00",
+        strokeOpacity: 0.9,
+        strokeWeight: 2,
+      });
+
+      overlaysRef.current.push(() => {
+        hintCircle.setMap(null);
+      });
+    }
+
     if (props.revealTarget) {
       const targetMarker = new googleMaps.maps.marker.AdvancedMarkerElement({
         map,
@@ -214,6 +241,7 @@ export function GameMap(props: GuessMapProps) {
       });
     }
   }, [
+    props.closerHintCircle,
     props.currentAccuracy,
     props.currentPosition,
     props.guesses,

@@ -40,6 +40,14 @@ export function pointsForRadius(radii: number[], successfulRadius: number | null
   return (radii.length - index) * SCORE_STEP;
 }
 
+export function applyHintPenalty(rawPoints: number, hintPenaltyPoints: number) {
+  return Math.max(0, rawPoints - Math.max(0, hintPenaltyPoints));
+}
+
+export function maxPointsForRadii(radii: number[]) {
+  return radii.length * SCORE_STEP;
+}
+
 export function didImproveBestRadius(
   currentBestRadius: number | null,
   candidateRadius: number,

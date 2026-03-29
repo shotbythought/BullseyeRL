@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getGetMeCloserHintRadius,
+  pointHintDirectionFromBearing,
+} from "../src/lib/domain/hints";
+import {
   bearingBetweenPoints,
   haversineDistanceMeters,
 } from "../src/lib/domain/geodesy";
@@ -12,8 +16,10 @@ import {
   LOCATION_PRESETS,
 } from "../src/lib/location-presets";
 import {
+  applyHintPenalty,
   SCORE_STEP,
   didImproveBestRadius,
+  maxPointsForRadii,
   pointsForRadius,
   validateRadii,
 } from "../src/lib/domain/scoring";
@@ -73,11 +79,36 @@ describe("scoring helpers", () => {
     expect(pointsForRadius(radii, null)).toBe(0);
   });
 
+  it("applies hint penalties without going negative", () => {
+    expect(applyHintPenalty(4000, 1000)).toBe(3000);
+    expect(applyHintPenalty(1000, 2000)).toBe(0);
+    expect(maxPointsForRadii([25, 100, 250, 500])).toBe(4 * SCORE_STEP);
+  });
+
   it("detects only strictly smaller successes as improvements", () => {
     expect(didImproveBestRadius(null, 100)).toBe(true);
     expect(didImproveBestRadius(250, 100)).toBe(true);
     expect(didImproveBestRadius(100, 250)).toBe(false);
     expect(didImproveBestRadius(100, 100)).toBe(false);
+  });
+});
+
+describe("hint helpers", () => {
+  it("uses the third radius tier for get me closer", () => {
+    expect(getGetMeCloserHintRadius([25, 100, 250, 500])).toBe(250);
+    expect(getGetMeCloserHintRadius([25, 100])).toBeNull();
+  });
+
+  it("maps bearings into four cardinal directions", () => {
+    expect(pointHintDirectionFromBearing(0)).toBe("north");
+    expect(pointHintDirectionFromBearing(44.9)).toBe("north");
+    expect(pointHintDirectionFromBearing(45)).toBe("east");
+    expect(pointHintDirectionFromBearing(134.9)).toBe("east");
+    expect(pointHintDirectionFromBearing(135)).toBe("south");
+    expect(pointHintDirectionFromBearing(224.9)).toBe("south");
+    expect(pointHintDirectionFromBearing(225)).toBe("west");
+    expect(pointHintDirectionFromBearing(314.9)).toBe("west");
+    expect(pointHintDirectionFromBearing(315)).toBe("north");
   });
 });
 

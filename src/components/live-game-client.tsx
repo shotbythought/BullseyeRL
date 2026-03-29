@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { authorizedJsonFetch } from "@/lib/api/client";
+import type { PointHintDirection, RoundHintType } from "@/lib/domain/hints";
 import { formatCountdown, formatDurationLabel, formatMeters, formatScore } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -31,12 +32,24 @@ export function LiveGameClient(props: { gameId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedRadius, setSelectedRadius] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<
+    "guess" | "advance" | RoundHintType | null
+  >(null);
   const [revealState, setRevealState] = useState<RevealState | null>(null);
   const revealLockRef = useRef(false);
   const loadStateRef = useRef<(() => Promise<void>) | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [birthdayBusy, setBirthdayBusy] = useState(false);
   const [birthdayNotice, setBirthdayNotice] = useState<string | null>(null);
+
+  function applyGameState(response: LiveGameState) {
+    setGame(response);
+    setSelectedRadius((previous) =>
+      previous && response.radiiMeters.includes(previous)
+        ? previous
+        : response.radiiMeters[0] ?? null,
+    );
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -51,12 +64,7 @@ export function LiveGameClient(props: { gameId: string }) {
           return;
         }
 
-        setGame(response);
-        setSelectedRadius((previous) =>
-          previous && response.radiiMeters.includes(previous)
-            ? previous
-            : response.radiiMeters[0] ?? null,
-        );
+        applyGameState(response);
         setError(null);
       } catch (loadError) {
         if (!mounted) {
@@ -127,6 +135,7 @@ export function LiveGameClient(props: { gameId: string }) {
       return;
     }
 
+    setPendingAction("guess");
     startTransition(async () => {
       try {
         const response = await authorizedJsonFetch<
@@ -152,12 +161,7 @@ export function LiveGameClient(props: { gameId: string }) {
 
           try {
             const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}`);
-            setGame(refreshed);
-            setSelectedRadius((previous) =>
-              previous && refreshed.radiiMeters.includes(previous)
-                ? previous
-                : refreshed.radiiMeters[0] ?? null,
-            );
+            applyGameState(refreshed);
             setError(null);
           } catch (refreshError) {
             setError(
@@ -175,6 +179,8 @@ export function LiveGameClient(props: { gameId: string }) {
             ? submissionError.message
             : "Unable to submit guess.",
         );
+      } finally {
+        setPendingAction(null);
       }
     });
   }
@@ -201,6 +207,7 @@ export function LiveGameClient(props: { gameId: string }) {
       return;
     }
 
+    setPendingAction("advance");
     startTransition(async () => {
       try {
         const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}/advance`, {
@@ -210,12 +217,7 @@ export function LiveGameClient(props: { gameId: string }) {
           }),
         });
 
-        setGame(refreshed);
-        setSelectedRadius((previous) =>
-          previous && refreshed.radiiMeters.includes(previous)
-            ? previous
-            : refreshed.radiiMeters[0] ?? null,
-        );
+        applyGameState(refreshed);
         setRevealState(null);
         revealLockRef.current = false;
         setError(null);
@@ -225,6 +227,42 @@ export function LiveGameClient(props: { gameId: string }) {
             ? advanceError.message
             : "Unable to advance to the next round.",
         );
+      } finally {
+        setPendingAction(null);
+      }
+    });
+  }
+
+  async function handleUseHint(hintType: RoundHintType) {
+    if (!game) {
+      return;
+    }
+
+    if (hintType === "point_me" && !position) {
+      return;
+    }
+
+    setPendingAction(hintType);
+    startTransition(async () => {
+      try {
+        const refreshed = await authorizedJsonFetch<LiveGameState>(`/api/games/${props.gameId}/hint`, {
+          method: "POST",
+          body: JSON.stringify({
+            gameId: props.gameId,
+            hintType,
+            currentLat: hintType === "point_me" ? position?.latitude : undefined,
+            currentLng: hintType === "point_me" ? position?.longitude : undefined,
+          }),
+        });
+
+        applyGameState(refreshed);
+        setError(null);
+      } catch (hintError) {
+        setError(
+          hintError instanceof Error ? hintError.message : "Unable to use that hint.",
+        );
+      } finally {
+        setPendingAction(null);
       }
     });
   }
@@ -284,6 +322,7 @@ export function LiveGameClient(props: { gameId: string }) {
         : game.roundResolved
           ? "Resolved"
           : formatCountdown(roundTimeRemainingSeconds);
+  const getMeCloserHintRadius = game.radiiMeters[2] ?? null;
 
   if (game.status === "completed" && game.completedRounds && !revealState) {
     return <GameFinishedScreen game={game} />;
@@ -291,11 +330,13 @@ export function LiveGameClient(props: { gameId: string }) {
 
   return (
     <div className="space-y-5">
-      <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid gap-4 rounded-[2rem] border border-ink/10 bg-white/92 p-5 shadow-panel md:grid-cols-4 xl:grid-cols-8">
         <StatCard label="Round" value={`${game.roundIndex + 1} / ${game.roundCount}`} />
         <StatCard label="Time left" value={roundTimerValue} />
         <StatCard label="Attempts left" value={String(game.attemptsRemaining)} />
         <StatCard label="Best so far" value={formatMeters(game.bestSuccessfulRadiusMeters)} />
+        <StatCard label="Max now" value={formatScore(game.maxAvailableRoundPoints)} />
+        <StatCard label="Hint penalty" value={formatScore(game.hintPenaltyPoints)} />
         <StatCard label="Round points" value={formatScore(game.provisionalRoundPoints)} />
         <StatCard label="Team score" value={formatScore(game.teamScore)} />
       </section>
@@ -337,6 +378,7 @@ export function LiveGameClient(props: { gameId: string }) {
                     }
                   : null
               }
+              closerHintCircle={game.hints.getMeCloser.circle}
               guesses={game.guesses}
               mapBounds={game.mapBounds}
               revealRadii={activeRevealState?.radiiMeters ?? []}
@@ -385,6 +427,18 @@ export function LiveGameClient(props: { gameId: string }) {
                   {formatDurationLabel(game.roundTimeLimitSeconds)}
                 </span>
               </p>
+              <p>
+                Score ceiling now:{" "}
+                <span className="font-semibold text-ink">
+                  {formatScore(game.maxAvailableRoundPoints)}
+                </span>
+              </p>
+              <p>
+                Hint penalty total:{" "}
+                <span className="font-semibold text-ink">
+                  {formatScore(game.hintPenaltyPoints)}
+                </span>
+              </p>
               {geolocationError ? (
                 <p className="text-ember">{geolocationError}</p>
               ) : null}
@@ -396,6 +450,78 @@ export function LiveGameClient(props: { gameId: string }) {
                   Your reported accuracy is worse than the selected radius. You can still guess.
                 </p>
               ) : null}
+            </div>
+
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/45">
+                  Shared hints
+                </p>
+                <span className="text-sm text-ink/55">
+                  Once per hint each round
+                </span>
+              </div>
+              <div className="mt-3 space-y-3">
+                <HintControlCard
+                  actionLabel={
+                    pendingAction === "get_me_closer"
+                      ? "Applying..."
+                      : game.hints.getMeCloser.used
+                        ? "Used"
+                        : game.hints.getMeCloser.isAvailable
+                          ? "Use hint"
+                          : "Unavailable"
+                  }
+                  description={
+                    game.hints.getMeCloser.used && game.hints.getMeCloser.circle
+                      ? `Hint circle live on the map at ${formatMeters(game.hints.getMeCloser.circle.radiusMeters)}.`
+                      : game.hints.getMeCloser.isAvailable && getMeCloserHintRadius != null
+                        ? `Show me a ${formatMeters(getMeCloserHintRadius)} circle containing the target.`
+                        : "Requires at least 3 radius tiers in this challenge."
+                  }
+                  detail={`-${formatScore(game.hints.getMeCloser.costPoints)} points`}
+                  disabled={
+                    pending ||
+                    game.status === "completed" ||
+                    !!activeRevealState ||
+                    roundTimerExpired ||
+                    game.hints.getMeCloser.used ||
+                    !game.hints.getMeCloser.isAvailable
+                  }
+                  onClick={() => void handleUseHint("get_me_closer")}
+                  title="Get me closer"
+                />
+                <HintControlCard
+                  actionLabel={
+                    pendingAction === "point_me"
+                      ? "Applying..."
+                      : game.hints.pointMe.used
+                        ? "Used"
+                        : "Use hint"
+                  }
+                  description={
+                    game.hints.pointMe.used && game.hints.pointMe.direction
+                      ? `Team direction: ${formatPointHintDirection(game.hints.pointMe.direction)}.`
+                      : "Reveal one shared North / South / East / West direction from the requester."
+                  }
+                  detail={`-${formatScore(game.hints.pointMe.costPoints)} points`}
+                  disabled={
+                    pending ||
+                    game.status === "completed" ||
+                    !!activeRevealState ||
+                    roundTimerExpired ||
+                    game.hints.pointMe.used ||
+                    !position
+                  }
+                  onClick={() => void handleUseHint("point_me")}
+                  statusLabel={
+                    game.hints.pointMe.direction
+                      ? formatPointHintDirection(game.hints.pointMe.direction)
+                      : null
+                  }
+                  title="Point me"
+                />
+              </div>
             </div>
 
             {error ? (
@@ -420,7 +546,7 @@ export function LiveGameClient(props: { gameId: string }) {
                   onClick={() => void handleAdvanceRound()}
                   type="button"
                 >
-                  {pending
+                  {pendingAction === "advance"
                     ? "Continuing..."
                     : activeRevealState.isGameComplete
                       ? "View scorecard"
@@ -442,7 +568,7 @@ export function LiveGameClient(props: { gameId: string }) {
               onClick={() => void handleGuess()}
               type="button"
             >
-              {pending ? "Submitting..." : "Guess"}
+              {pendingAction === "guess" ? "Submitting..." : "Guess"}
             </button>
           </div>
 
@@ -529,4 +655,41 @@ function StatCard(props: { label: string; value: string }) {
       <p className="mt-2 text-2xl font-semibold text-ink">{props.value}</p>
     </div>
   );
+}
+
+function HintControlCard(props: {
+  title: string;
+  detail: string;
+  description: string;
+  actionLabel: string;
+  disabled: boolean;
+  onClick: () => void;
+  statusLabel?: string | null;
+}) {
+  return (
+    <div className="rounded-[1.5rem] border border-ink/10 bg-mist p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-ink">{props.title}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-ink/45">
+            {props.detail}
+          </p>
+        </div>
+        {props.statusLabel ? <StatusChip label={props.statusLabel} tone="neutral" /> : null}
+      </div>
+      <p className="mt-3 text-sm leading-6 text-ink/65">{props.description}</p>
+      <button
+        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={props.disabled}
+        onClick={props.onClick}
+        type="button"
+      >
+        {props.actionLabel}
+      </button>
+    </div>
+  );
+}
+
+function formatPointHintDirection(direction: PointHintDirection) {
+  return direction.charAt(0).toUpperCase() + direction.slice(1);
 }

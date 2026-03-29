@@ -1,9 +1,14 @@
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import {
+  GET_ME_CLOSER_HINT_COST,
+  POINT_ME_HINT_COST,
+  getGetMeCloserHintRadius,
+} from "@/lib/domain/hints";
+import {
   getLocationPresetBounds,
   getLocationRegionBounds,
 } from "@/lib/location-presets";
-import { SCORE_STEP } from "@/lib/domain/scoring";
+import { applyHintPenalty, maxPointsForRadii } from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
 import { getCaptainUserIdForGame } from "@/lib/temp/birthday-next-round/captain";
 import type {
@@ -138,6 +143,8 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
 
   const playerNames = new Map((players ?? []).map((player) => [player.id, player.nickname]));
   const mapBounds = resolveMapBounds(challenge, challengeRound);
+  const maxRoundPoints = maxPointsForRadii(challenge.radii_meters);
+  const closerHintRadius = getGetMeCloserHintRadius(challenge.radii_meters);
   const completedRounds =
     game.status === "completed"
       ? await getCompletedRounds({
@@ -181,8 +188,13 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     roundTimedOut,
     radiiMeters: challenge.radii_meters,
     bestSuccessfulRadiusMeters: currentGameRound.best_successful_radius_meters,
+    hintPenaltyPoints: currentGameRound.hint_penalty_points,
+    maxAvailableRoundPoints: applyHintPenalty(
+      maxRoundPoints,
+      currentGameRound.hint_penalty_points,
+    ),
     provisionalRoundPoints: currentGameRound.provisional_points,
-    maxRoundPoints: challenge.radii_meters.length * SCORE_STEP,
+    maxRoundPoints,
     teamScore: game.team_score,
     currentRoundId: currentGameRound.id,
     currentChallengeRoundId: challengeRound.id,
@@ -205,6 +217,29 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     })),
     players: players ?? [],
     viewerIsCaptain,
+    hints: {
+      getMeCloser: {
+        costPoints: GET_ME_CLOSER_HINT_COST,
+        isAvailable: closerHintRadius != null,
+        used: currentGameRound.closer_hint_used,
+        circle:
+          currentGameRound.closer_hint_used &&
+          currentGameRound.closer_hint_center_lat != null &&
+          currentGameRound.closer_hint_center_lng != null &&
+          currentGameRound.closer_hint_radius_meters != null
+            ? {
+                lat: currentGameRound.closer_hint_center_lat,
+                lng: currentGameRound.closer_hint_center_lng,
+                radiusMeters: currentGameRound.closer_hint_radius_meters,
+              }
+            : null,
+      },
+      pointMe: {
+        costPoints: POINT_ME_HINT_COST,
+        used: currentGameRound.point_hint_used,
+        direction: currentGameRound.point_hint_direction,
+      },
+    },
     roundResolved: currentGameRound.resolved,
     completedRounds,
     target: currentGameRound.resolved
