@@ -21,6 +21,7 @@ interface StreetViewMetadataResponse {
 
 const DEFAULT_PITCH = 0;
 const DEFAULT_FOV = 90;
+const DEFAULT_IMAGE_SIZE = "640x480";
 
 export async function resolveStreetViewMetadata(
   targetLat: number,
@@ -72,7 +73,8 @@ export function buildStreetViewStaticUrl(params: {
 }) {
   const serverEnv = getServerEnv();
   const url = new URL("https://maps.googleapis.com/maps/api/streetview");
-  url.searchParams.set("size", params.size ?? "1200x720");
+  // Street View Static is capped at 640x640, so keep the default landscape frame within that limit.
+  url.searchParams.set("size", params.size ?? DEFAULT_IMAGE_SIZE);
   url.searchParams.set("location", `${params.lat},${params.lng}`);
   url.searchParams.set("heading", String(params.heading));
   url.searchParams.set("pitch", String(params.pitch));
