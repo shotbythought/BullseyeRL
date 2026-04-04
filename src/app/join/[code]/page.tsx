@@ -22,7 +22,10 @@ export default async function JoinGamePage({
         </p>
 
         <div className="mt-8">
-          <JoinGameForm defaultJoinCode={code === "demo" ? "" : code} />
+          <JoinGameForm
+            defaultJoinCode={code === "demo" ? "" : code}
+            redirectExistingMember={code !== "demo"}
+          />
         </div>
       </section>
     </main>

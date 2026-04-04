@@ -1,14 +1,57 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 
 import { authorizedJsonFetch } from "@/lib/api/client";
 
-export function JoinGameForm(props?: { defaultJoinCode?: string }) {
+export function JoinGameForm(props?: {
+  defaultJoinCode?: string;
+  redirectExistingMember?: boolean;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [resolvingExistingGame, setResolvingExistingGame] = useState(
+    Boolean(props?.redirectExistingMember && props.defaultJoinCode),
+  );
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!props?.redirectExistingMember || !props.defaultJoinCode) {
+      setResolvingExistingGame(false);
+      return;
+    }
+
+    let active = true;
+    setResolvingExistingGame(true);
+
+    void (async () => {
+      try {
+        const response = await authorizedJsonFetch<{ gameId: string | null }>(
+          `/api/games/join?joinCode=${encodeURIComponent(props.defaultJoinCode ?? "")}`,
+        );
+
+        if (!active) {
+          return;
+        }
+
+        if (response.gameId) {
+          router.replace(`/games/${response.gameId}`);
+          return;
+        }
+      } catch {
+        // Fall back to the normal join flow if the membership lookup fails.
+      }
+
+      if (active) {
+        setResolvingExistingGame(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [props?.defaultJoinCode, props?.redirectExistingMember, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +84,7 @@ export function JoinGameForm(props?: { defaultJoinCode?: string }) {
       <input
         className="w-full rounded-xl border border-ink/10 bg-white px-5 py-4 text-base uppercase outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
         defaultValue={props?.defaultJoinCode ?? ""}
+        disabled={pending || resolvingExistingGame}
         name="joinCode"
         placeholder="Join code"
         required
@@ -48,6 +92,7 @@ export function JoinGameForm(props?: { defaultJoinCode?: string }) {
       />
       <input
         className="w-full rounded-xl border border-ink/10 bg-white px-5 py-4 text-base outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
+        disabled={pending || resolvingExistingGame}
         name="nickname"
         placeholder="Nickname"
         required
@@ -60,10 +105,10 @@ export function JoinGameForm(props?: { defaultJoinCode?: string }) {
       ) : null}
       <button
         className="inline-flex w-full items-center justify-center rounded-xl bg-ink px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={pending}
+        disabled={pending || resolvingExistingGame}
         type="submit"
       >
-        {pending ? "Joining..." : "Join game"}
+        {resolvingExistingGame ? "Checking..." : pending ? "Joining..." : "Join game"}
       </button>
     </form>
   );
