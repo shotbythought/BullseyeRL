@@ -38,8 +38,21 @@ export function LiveGameClient(props: { gameId: string }) {
   const [hintsOpen, setHintsOpen] = useState(false);
   const [guessConfirmOpen, setGuessConfirmOpen] = useState(false);
   const [howToPlayOpen, setHowToPlayOpen] = useState(false);
+  const previousRoundIdRef = useRef<string | null>(null);
+
+  function syncRoundLocalState(nextRoundId: string) {
+    const previousRoundId = previousRoundIdRef.current;
+    previousRoundIdRef.current = nextRoundId;
+
+    if (previousRoundId && previousRoundId !== nextRoundId) {
+      setStageMode("image");
+      setHintsOpen(false);
+      setGuessConfirmOpen(false);
+    }
+  }
 
   function applyGameState(response: LiveGameState) {
+    syncRoundLocalState(response.currentRoundId);
     setGame(response);
     setSelectedRadius((previous) =>
       previous && response.radiiMeters.includes(previous)
