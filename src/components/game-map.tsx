@@ -33,6 +33,7 @@ interface GuessMapProps {
       }
     | null;
   className?: string;
+  interactive?: boolean;
 }
 
 const BOUNDS_OUTLINE_COLOR = "#173f35";
@@ -103,11 +104,12 @@ export function GameMap(props: GuessMapProps) {
         zoom: 11,
         mapId: "bullseyerl-live-map",
         // One-finger pan on mobile; "cooperative" reserves one finger for page scroll (two-finger map).
-        gestureHandling: "greedy",
+        gestureHandling: props.interactive === false ? "none" : "greedy",
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: false,
         clickableIcons: false,
+        keyboardShortcuts: props.interactive !== false,
       });
 
       const map = mapRef.current;
@@ -154,7 +156,19 @@ export function GameMap(props: GuessMapProps) {
       mapListenersRef.current.forEach((dispose) => dispose());
       mapListenersRef.current = [];
     };
-  }, []);
+  }, [props.interactive]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    map.setOptions({
+      gestureHandling: props.interactive === false ? "none" : "greedy",
+      keyboardShortcuts: props.interactive !== false,
+    });
+  }, [props.interactive]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;

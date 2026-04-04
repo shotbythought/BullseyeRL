@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HowToPlay } from "@/components/how-to-play";
 import { JoinGameForm } from "@/components/join-game-form";
 
 export default function HomePage() {
@@ -29,6 +30,12 @@ export default function HomePage() {
               >
                 Create challenge
               </Link>
+              <Link
+                className="inline-flex items-center rounded-xl border border-white/18 bg-white/10 px-6 py-4 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:border-white/28 hover:bg-white/16"
+                href="/tutorial"
+              >
+                Play tutorial
+              </Link>
             </div>
           </div>
 
@@ -47,6 +54,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HowToPlay />
     </main>
   );
 }

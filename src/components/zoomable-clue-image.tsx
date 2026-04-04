@@ -15,7 +15,12 @@ function touchDistance(touches: TouchList) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 }
 
-export function ZoomableClueImage(props: { imageUrl: string; roundKey: string }) {
+export function ZoomableClueImage(props: {
+  imageUrl: string;
+  roundKey: string;
+  interactive?: boolean;
+  targetId?: string;
+}) {
   const [scale, setScale] = useState(1);
   const [x, setX] = useState(0);
   const [y, setY] = useState(0);
@@ -44,6 +49,9 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
     }
 
     const onWheel = (e: WheelEvent) => {
+      if (props.interactive === false) {
+        return;
+      }
       e.preventDefault();
       const factor = e.deltaY > 0 ? 0.92 : 1.08;
       setScale((s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s * factor)));
@@ -51,6 +59,9 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
     el.addEventListener("wheel", onWheel, { passive: false });
 
     const onTouchStart = (e: TouchEvent) => {
+      if (props.interactive === false) {
+        return;
+      }
       if (e.touches.length === 2) {
         pinchRef.current = {
           initialDist: touchDistance(e.touches),
@@ -60,6 +71,9 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
     };
 
     const onTouchMove = (e: TouchEvent) => {
+      if (props.interactive === false) {
+        return;
+      }
       if (e.touches.length === 2 && pinchRef.current) {
         e.preventDefault();
         const d = touchDistance(e.touches);
@@ -88,10 +102,10 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
       el.removeEventListener("touchend", onTouchEnd);
       el.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, []);
+  }, [props.interactive]);
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.button !== 0 || scale <= MIN_SCALE) {
+    if (props.interactive === false || e.button !== 0 || scale <= MIN_SCALE) {
       return;
     }
     dragRef.current = {
@@ -105,6 +119,9 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (props.interactive === false) {
+      return;
+    }
     const d = dragRef.current;
     if (!d || d.pointerId !== e.pointerId) {
       return;
@@ -132,12 +149,17 @@ export function ZoomableClueImage(props: { imageUrl: string; roundKey: string })
         <div
           className={clsx(
             "relative max-h-full max-w-full touch-manipulation will-change-transform",
-            scale > MIN_SCALE ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
+            props.interactive === false
+              ? "cursor-default"
+              : scale > MIN_SCALE
+                ? "cursor-grab active:cursor-grabbing"
+                : "cursor-zoom-in",
           )}
           onPointerCancel={endDrag}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
+          data-tutorial-target={props.targetId}
           style={{
             transform: `translate(${x}px, ${y}px) scale(${scale})`,
             transformOrigin: "center center",

@@ -9,6 +9,10 @@ function isLiveGamePath(pathname: string) {
   return /^\/games\/[^/]+\/?$/.test(pathname);
 }
 
+function isFullBleedPath(pathname: string) {
+  return isLiveGamePath(pathname) || pathname === "/tutorial";
+}
+
 function HeaderCopyJoinButton(props: { joinCode: string }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
@@ -74,7 +78,7 @@ function HeaderCopyJoinButton(props: { joinCode: string }) {
 export function SiteHeader() {
   const pathname = usePathname() ?? "";
 
-  if (isLiveGamePath(pathname)) {
+  if (isFullBleedPath(pathname)) {
     return null;
   }
 

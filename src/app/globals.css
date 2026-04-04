@@ -44,6 +44,25 @@ input {
   }
 }
 
+@keyframes tutorial-target-pulse {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
 .copy-link-toast {
   animation: copy-link-toast 2s ease-out forwards;
+}
+
+.tutorial-target-pulse {
+  animation: tutorial-target-pulse 1.8s ease-out infinite;
 }

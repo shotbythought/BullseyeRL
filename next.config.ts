@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       ? ".next"
       : process.env.NEXT_DIST_DIR ??
         (nextCommand ? DIST_DIR_BY_COMMAND[nextCommand] : ".next"),
+  // The dev indicator floats over the bottom HUD on mobile and steals taps.
+  devIndicators: false,
   images: {
     remotePatterns: [
       {
