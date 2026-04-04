@@ -15,7 +15,9 @@ import { GameFinishedScreen } from "@/components/game-finished-screen";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { authorizedJsonFetch } from "@/lib/api/client";
 import type { RoundHintType } from "@/lib/domain/hints";
+import { shouldShowJustCompletedReveal } from "@/lib/live-game-reveal";
 import { createReloadController } from "@/lib/reload-controller";
+import { ensureAnonymousSession } from "@/lib/session/anonymous";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { LiveGameState } from "@/types/app";
 
@@ -39,12 +41,15 @@ export function LiveGameClient(props: { gameId: string }) {
   const [guessConfirmOpen, setGuessConfirmOpen] = useState(false);
   const [howToPlayOpen, setHowToPlayOpen] = useState(false);
   const previousRoundIdRef = useRef<string | null>(null);
+  const previousGameRef = useRef<LiveGameState | null>(null);
 
   function syncRoundLocalState(nextRoundId: string) {
     const previousRoundId = previousRoundIdRef.current;
     previousRoundIdRef.current = nextRoundId;
 
     if (previousRoundId && previousRoundId !== nextRoundId) {
+      setRevealState(null);
+      setRevealLock(false);
       setStageMode("image");
       setHintsOpen(false);
       setGuessConfirmOpen(false);
@@ -52,13 +57,20 @@ export function LiveGameClient(props: { gameId: string }) {
   }
 
   function applyGameState(response: LiveGameState) {
+    const previousGame = previousGameRef.current;
     syncRoundLocalState(response.currentRoundId);
     setGame(response);
+    previousGameRef.current = response;
     setSelectedRadius((previous) =>
       previous && response.radiiMeters.includes(previous)
         ? previous
         : response.radiiMeters[0] ?? null,
     );
+
+    if (shouldShowJustCompletedReveal(previousGame, response)) {
+      setRevealState(buildRevealState(response));
+      setRevealLock(true);
+    }
   }
 
   function syncReloadSuppression() {
@@ -86,7 +98,7 @@ export function LiveGameClient(props: { gameId: string }) {
   useEffect(() => {
     let mounted = true;
     const supabase = getBrowserSupabaseClient();
-    let channels: RealtimeChannel[] = [];
+    const channels: RealtimeChannel[] = [];
 
     async function loadState() {
       try {
@@ -117,26 +129,70 @@ export function LiveGameClient(props: { gameId: string }) {
       controller.setSuppressed(suppressed);
     };
     controller.setSuppressed(revealLockRef.current || localMutationPendingRef.current);
-    controller.request();
+    void (async () => {
+      try {
+        await ensureAnonymousSession();
 
-    const subscribe = (table: string, filter: string) =>
-      supabase
-        .channel(`bullseye:${props.gameId}:${table}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table, filter },
-          () => {
-            controller.request();
-          },
-        )
-        .subscribe();
+        if (!mounted) {
+          return;
+        }
 
-    channels = [
-      subscribe("games", `id=eq.${props.gameId}`),
-      subscribe("game_players", `game_id=eq.${props.gameId}`),
-      subscribe("game_rounds", `game_id=eq.${props.gameId}`),
-      subscribe("guesses", `game_id=eq.${props.gameId}`),
-    ];
+        const subscriptionResults = await Promise.allSettled(
+          [
+            ["games", `id=eq.${props.gameId}`],
+            ["game_players", `game_id=eq.${props.gameId}`],
+            ["game_rounds", `game_id=eq.${props.gameId}`],
+            ["guesses", `game_id=eq.${props.gameId}`],
+          ].map(async ([table, filter]) => {
+            const channel = supabase
+              .channel(`bullseye:${props.gameId}:${table}`)
+              .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table, filter },
+                () => {
+                  controller.request();
+                },
+              );
+
+            channels.push(channel);
+            await waitForChannelSubscription(channel, {
+              onProblem: (status, subscribeError) => {
+                console.error(
+                  `Realtime subscription ${status.toLowerCase()} for ${table}.`,
+                  subscribeError,
+                );
+              },
+              onSubscribed: () => {
+                controller.request();
+              },
+              table,
+            });
+          }),
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        if (subscriptionResults.some((result) => result.status === "rejected")) {
+          console.error("One or more realtime subscriptions failed to initialize.", {
+            gameId: props.gameId,
+          });
+        }
+
+        controller.request();
+      } catch (initializationError) {
+        if (!mounted) {
+          return;
+        }
+
+        setError(
+          initializationError instanceof Error
+            ? initializationError.message
+            : "Unable to start live sync.",
+        );
+      }
+    })();
 
     return () => {
       mounted = false;
@@ -410,4 +466,61 @@ function buildRevealState(game: LiveGameState): RevealState | null {
     isGameComplete: game.status === "completed",
     timedOut: game.roundTimedOut,
   };
+}
+
+function waitForChannelSubscription(
+  channel: RealtimeChannel,
+  options: {
+    table: string;
+    onSubscribed: () => void;
+    onProblem: (status: "timed_out" | "channel_error" | "closed", error?: Error) => void;
+  },
+) {
+  return new Promise<void>((resolve, reject) => {
+    let settled = false;
+
+    channel.subscribe((status, error) => {
+      if (status === "SUBSCRIBED") {
+        options.onSubscribed();
+
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+
+        return;
+      }
+
+      if (status === "TIMED_OUT") {
+        options.onProblem("timed_out", error);
+
+        if (!settled) {
+          settled = true;
+          reject(error ?? new Error(`Timed out subscribing to ${options.table}.`));
+        }
+
+        return;
+      }
+
+      if (status === "CHANNEL_ERROR") {
+        options.onProblem("channel_error", error);
+
+        if (!settled) {
+          settled = true;
+          reject(error ?? new Error(`Channel error subscribing to ${options.table}.`));
+        }
+
+        return;
+      }
+
+      if (status === "CLOSED") {
+        options.onProblem("closed", error);
+
+        if (!settled) {
+          settled = true;
+          reject(new Error(`Channel closed before subscribing to ${options.table}.`));
+        }
+      }
+    });
+  });
 }

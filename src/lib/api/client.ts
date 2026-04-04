@@ -8,6 +8,7 @@ export async function authorizedJsonFetch<T>(
 ) {
   const accessToken = await getAccessToken();
   const response = await fetch(input, {
+    cache: "no-store",
     ...init,
     headers: {
       ...(init?.headers ?? {}),
