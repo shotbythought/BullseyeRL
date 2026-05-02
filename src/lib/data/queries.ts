@@ -22,6 +22,7 @@ import type {
   LiveGameState,
   MapArea,
   MapBounds,
+  MapCoordinate,
 } from "@/types/app";
 
 export async function getChallengeWithRounds(challengeId: string) {
@@ -261,6 +262,12 @@ function resolveMapArea(
   challenge: ChallengeRecord,
   challengeRound: ChallengeRoundRecord,
 ): MapArea {
+  const effectiveArea = getSourcePayloadMapArea(challengeRound.source_payload, "effectiveMapArea");
+
+  if (effectiveArea) {
+    return effectiveArea;
+  }
+
   const regionId = getSourcePayloadString(challengeRound.source_payload, "regionId");
   const regionArea = regionId ? getLocationRegionArea(regionId) : null;
 
@@ -287,6 +294,61 @@ function resolveMapBounds(mapArea: MapArea): MapBounds {
   }
 
   return bounds;
+}
+
+function getSourcePayloadMapArea(
+  payload: Record<string, unknown> | null,
+  key: string,
+): MapArea | null {
+  const value = payload?.[key];
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const area: MapArea = [];
+
+  for (const polygonValue of value) {
+    if (!Array.isArray(polygonValue)) {
+      return null;
+    }
+
+    const polygon = [];
+
+    for (const ringValue of polygonValue) {
+      if (!Array.isArray(ringValue)) {
+        return null;
+      }
+
+      const ring: MapCoordinate[] = [];
+
+      for (const pointValue of ringValue) {
+        if (
+          !pointValue ||
+          typeof pointValue !== "object" ||
+          !("lat" in pointValue) ||
+          !("lng" in pointValue)
+        ) {
+          return null;
+        }
+
+        const lat = (pointValue as { lat: unknown }).lat;
+        const lng = (pointValue as { lng: unknown }).lng;
+
+        if (typeof lat !== "number" || typeof lng !== "number") {
+          return null;
+        }
+
+        ring.push({ lat, lng });
+      }
+
+      polygon.push(ring);
+    }
+
+    area.push(polygon);
+  }
+
+  return area.length ? area : null;
 }
 
 async function getCompletedRounds(input: {

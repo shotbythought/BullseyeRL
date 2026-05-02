@@ -12,6 +12,9 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.8",
     "@supabase/supabase-js": "^2.49.4",
+    "@turf/circle": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
+    "@turf/intersect": "^7.3.5",
     "clsx": "^2.1.1",
     "next": "^15.2.2",
     "react": "^19.0.0",

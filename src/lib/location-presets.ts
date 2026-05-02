@@ -33,7 +33,15 @@ export interface LocationPreset {
   regions: LocationRegion[];
 }
 
+export const OPEN_LOCATION_PRESET_ID = "open";
+
 const POINT_ON_SEGMENT_TOLERANCE = 1e-9;
+const OPEN_LOCATION_BOUNDS: LocationBounds = {
+  south: -90,
+  west: -180,
+  north: 90,
+  east: 180,
+};
 
 function toLocationLatLng([lng, lat]: RawLocationPoint): LocationLatLng {
   return { lat, lng };
@@ -245,6 +253,18 @@ const coreCityPresets: LocationPreset[] = [
 ];
 
 const variantPresets: LocationPreset[] = [
+  {
+    id: OPEN_LOCATION_PRESET_ID,
+    label: "Open",
+    description: "No city boundary. Finite difficulties are clipped only by your travel radius.",
+    regions: [
+      {
+        id: "open-world",
+        label: "Open",
+        polygons: createRectangleArea(OPEN_LOCATION_BOUNDS),
+      },
+    ],
+  },
   {
     id: "san-francisco-walking",
     label: "SF (walking)",

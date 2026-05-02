@@ -51,6 +51,10 @@ export interface ChallengeRecord {
   location_count: number;
   guess_limit_per_round: number;
   round_time_limit_seconds: number | null;
+  difficulty_mode_id: string;
+  difficulty_meters_per_hour: number | null;
+  difficulty_origin_lat: number | null;
+  difficulty_origin_lng: number | null;
   radii_meters: number[];
   import_seed: string;
   status: ChallengeStatus;

@@ -8,11 +8,17 @@ export interface GeolocationSnapshot {
   accuracy: number | null;
 }
 
-export function useGeolocation() {
+export function useGeolocation(enabled = true) {
   const [position, setPosition] = useState<GeolocationSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setPosition(null);
+      setError(null);
+      return;
+    }
+
     if (!("geolocation" in navigator)) {
       setError("This browser does not support geolocation.");
       return;
@@ -38,7 +44,7 @@ export function useGeolocation() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [enabled]);
 
   return {
     position,

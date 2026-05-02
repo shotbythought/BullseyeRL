@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChallengeLinkShare } from "@/components/challenge-link-share";
 import { StartGameCard } from "@/components/start-game-card";
 import { getChallengeWithRounds } from "@/lib/data/queries";
+import { getDifficultyMode } from "@/lib/domain/difficulty";
 import { formatDurationLabel } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,12 @@ export default async function ChallengeDetailPage({
               <MetaCard
                 label="Round timer"
                 value={formatDurationLabel(challenge.round_time_limit_seconds)}
+              />
+              <MetaCard
+                label="Difficulty"
+                value={
+                  getDifficultyMode(challenge.difficulty_mode_id)?.label ?? "Infinite radius"
+                }
               />
             </dl>
           </div>

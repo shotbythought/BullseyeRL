@@ -9,6 +9,12 @@ import {
   haversineDistanceMeters,
 } from "../src/lib/domain/geodesy";
 import {
+  calculateDifficultyRadiusMeters,
+  DEFAULT_DIFFICULTY_TIMER_SECONDS,
+  METERS_PER_MILE,
+} from "../src/lib/domain/difficulty";
+import { clipAreaToRadius } from "../src/lib/domain/play-area";
+import {
   getBoundsForArea,
   getLocationPreset,
   getLocationPresetArea,
@@ -32,9 +38,10 @@ import {
 } from "../src/lib/domain/scoring";
 
 describe("location presets", () => {
-  it("exposes only the single-city presets in the picker", () => {
+  it("exposes playable presets in the picker", () => {
     const presetIds = LOCATION_PRESETS.map((preset) => preset.id);
     expect(presetIds).not.toContain("global-cities");
+    expect(presetIds).toContain("open");
     expect(presetIds).toContain("new-york");
     expect(presetIds).toContain("tokyo");
     expect(presetIds).toContain("london");
@@ -46,12 +53,14 @@ describe("location presets", () => {
   it("looks up presets by id", () => {
     expect(getLocationPreset("tokyo")?.label).toBe("Tokyo");
     expect(getLocationPreset("global-cities")?.label).toBe("Mixed Global Cities");
+    expect(getLocationPreset("open")?.label).toBe("Open");
     expect(getLocationPreset("san-francisco-walking")?.label).toBe("SF (walking)");
     expect(getLocationPreset("san-francisco-walking")?.regions).toHaveLength(1);
     expect(getLocationPreset("missing")).toBeNull();
   });
 
   it("looks up individual round regions by id", () => {
+    expect(getLocationRegion("open-world")?.label).toBe("Open");
     expect(getLocationRegion("new-york-manhattan")?.label).toBe("Manhattan");
     expect(getLocationRegion("paris-arrondissements")?.label).toBe("Paris Arrondissements");
     expect(getLocationRegion("san-francisco-city")?.label).toBe("San Francisco");
@@ -61,6 +70,13 @@ describe("location presets", () => {
   });
 
   it("returns stable viewport bounds for active presets and legacy regions", () => {
+    expect(getLocationPresetBounds("open")).toEqual({
+      south: -90,
+      west: -180,
+      north: 90,
+      east: 180,
+    });
+
     expect(getLocationRegionBounds("san-francisco-core")).toEqual({
       south: 37.7082,
       west: -122.5149,
@@ -113,9 +129,11 @@ describe("location presets", () => {
 
   it("exposes derived geometry areas for presets and regions", () => {
     expect(getLocationPresetArea("global-cities")).not.toBeNull();
+    expect(getLocationPresetArea("open")).not.toBeNull();
     expect(getLocationPresetArea("paris")).not.toBeNull();
     expect(getLocationRegionArea("new-york-manhattan")).not.toBeNull();
     expect(getLocationRegionArea("new-york-core")).not.toBeNull();
+    expect(pointInArea({ lat: 0, lng: 0 }, getLocationPresetArea("open")!)).toBe(true);
     expect(
       pointInArea(
         { lat: 37.764119571818, lng: -122.427689247364 },
@@ -194,6 +212,61 @@ describe("location geometry helpers", () => {
       expect(point).not.toBeNull();
       expect(point && pointInArea(point, testArea)).toBe(true);
     }
+  });
+
+  it("clips polygon areas to a radius circle", () => {
+    const clipped = clipAreaToRadius({
+      area: testArea,
+      center: { lat: 2, lng: 2 },
+      radiusMeters: 200000,
+    });
+
+    expect(clipped).not.toBeNull();
+    expect(clipped?.mapBounds.south).toBeGreaterThanOrEqual(0);
+    expect(clipped?.mapBounds.west).toBeGreaterThanOrEqual(0);
+    expect(clipped?.mapBounds.north).toBeLessThan(5);
+    expect(clipped?.mapBounds.east).toBeLessThan(5);
+    expect(pointInArea({ lat: 2, lng: 2 }, clipped!.mapArea)).toBe(true);
+    expect(pointInArea({ lat: 9, lng: 9 }, clipped!.mapArea)).toBe(false);
+  });
+
+  it("returns null for empty radius intersections", () => {
+    expect(
+      clipAreaToRadius({
+        area: testArea,
+        center: { lat: -20, lng: -20 },
+        radiusMeters: 500,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("difficulty helpers", () => {
+  it("derives finite difficulty radius from round timer", () => {
+    expect(
+      calculateDifficultyRadiusMeters({
+        difficultyModeId: "public-transport",
+        roundTimeLimitSeconds: 7200,
+      }),
+    ).toBe(Math.round(1 * METERS_PER_MILE * 2));
+  });
+
+  it("uses one hour for disabled timer radius calculation", () => {
+    expect(
+      calculateDifficultyRadiusMeters({
+        difficultyModeId: "driving",
+        roundTimeLimitSeconds: null,
+      }),
+    ).toBe(Math.round(4 * METERS_PER_MILE * (DEFAULT_DIFFICULTY_TIMER_SECONDS / 3600)));
+  });
+
+  it("returns null for infinite radius", () => {
+    expect(
+      calculateDifficultyRadiusMeters({
+        difficultyModeId: "infinite",
+        roundTimeLimitSeconds: 3600,
+      }),
+    ).toBeNull();
   });
 });
 
