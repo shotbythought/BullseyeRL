@@ -17,6 +17,13 @@ export interface LocationRegion {
   id: string;
   label: string;
   polygons: LocationArea;
+  exclusions?: LocationExclusion[];
+}
+
+export interface LocationExclusion {
+  id: string;
+  label: string;
+  polygons: LocationArea;
 }
 
 export interface LocationBounds {
@@ -136,6 +143,111 @@ const ACTIVE_LOCATION_AREAS = {
   "san-francisco-walking": buildArea(RAW_LOCATION_AREAS["san-francisco-walking"]),
 } satisfies Record<string, LocationArea>;
 
+const SAN_FRANCISCO_EXCLUSIONS: LocationExclusion[] = [
+  {
+    id: "san-francisco-tenderloin-exclusion",
+    label: "Tenderloin",
+    polygons: [
+      [
+        [
+          { lat: 37.775278, lng: -122.419168 },
+          { lat: 37.775147, lng: -122.419256 },
+          { lat: 37.775422, lng: -122.419397 },
+          { lat: 37.785567, lng: -122.421442 },
+          { lat: 37.785794, lng: -122.421298 },
+          { lat: 37.786619, lng: -122.42157 },
+          { lat: 37.788293, lng: -122.408402 },
+          { lat: 37.784699, lng: -122.407698 },
+          { lat: 37.78456, lng: -122.407337 },
+          { lat: 37.775645, lng: -122.418704 },
+          { lat: 37.775278, lng: -122.419168 },
+        ],
+      ],
+    ],
+  },
+  {
+    id: "san-francisco-hunters-point-exclusion",
+    label: "Hunters Point",
+    polygons: [
+      [
+        [
+          { lat: 37.75307, lng: -122.381578 },
+          { lat: 37.752249, lng: -122.376087 },
+          { lat: 37.748707, lng: -122.375771 },
+          { lat: 37.747591, lng: -122.387338 },
+          { lat: 37.748546, lng: -122.392933 },
+          { lat: 37.747441, lng: -122.392911 },
+          { lat: 37.747144, lng: -122.376092 },
+          { lat: 37.744972, lng: -122.374115 },
+          { lat: 37.745505, lng: -122.372762 },
+          { lat: 37.740134, lng: -122.367631 },
+          { lat: 37.738805, lng: -122.373598 },
+          { lat: 37.738222, lng: -122.367395 },
+          { lat: 37.737043, lng: -122.372923 },
+          { lat: 37.738394, lng: -122.37632 },
+          { lat: 37.737295, lng: -122.374883 },
+          { lat: 37.732881, lng: -122.375689 },
+          { lat: 37.734209, lng: -122.371913 },
+          { lat: 37.731947, lng: -122.367461 },
+          { lat: 37.733803, lng: -122.365259 },
+          { lat: 37.731916, lng: -122.36619 },
+          { lat: 37.73283, lng: -122.365013 },
+          { lat: 37.731715, lng: -122.36581 },
+          { lat: 37.732143, lng: -122.362876 },
+          { lat: 37.73009, lng: -122.361907 },
+          { lat: 37.729783, lng: -122.35879 },
+          { lat: 37.728521, lng: -122.362283 },
+          { lat: 37.729245, lng: -122.357479 },
+          { lat: 37.728217, lng: -122.360408 },
+          { lat: 37.72871, lng: -122.356967 },
+          { lat: 37.726282, lng: -122.3577 },
+          { lat: 37.725219, lng: -122.361641 },
+          { lat: 37.724624, lng: -122.357838 },
+          { lat: 37.723775, lng: -122.361524 },
+          { lat: 37.725512, lng: -122.365324 },
+          { lat: 37.721629, lng: -122.359976 },
+          { lat: 37.722102, lng: -122.36381 },
+          { lat: 37.719309, lng: -122.359129 },
+          { lat: 37.719055, lng: -122.363657 },
+          { lat: 37.715883, lng: -122.358584 },
+          { lat: 37.718021, lng: -122.362646 },
+          { lat: 37.716727, lng: -122.363866 },
+          { lat: 37.714298, lng: -122.360037 },
+          { lat: 37.716581, lng: -122.363975 },
+          { lat: 37.715352, lng: -122.365216 },
+          { lat: 37.712752, lng: -122.361171 },
+          { lat: 37.715237, lng: -122.365388 },
+          { lat: 37.716468, lng: -122.364628 },
+          { lat: 37.718905, lng: -122.373995 },
+          { lat: 37.724241, lng: -122.377081 },
+          { lat: 37.721759, lng: -122.380792 },
+          { lat: 37.724471, lng: -122.386453 },
+          { lat: 37.721883, lng: -122.382828 },
+          { lat: 37.72009, lng: -122.383197 },
+          { lat: 37.716108, lng: -122.376131 },
+          { lat: 37.710615, lng: -122.38005 },
+          { lat: 37.708601, lng: -122.377925 },
+          { lat: 37.709692, lng: -122.376062 },
+          { lat: 37.708637, lng: -122.374421 },
+          { lat: 37.709999, lng: -122.386017 },
+          { lat: 37.708671, lng: -122.388078 },
+          { lat: 37.709698, lng: -122.39149 },
+          { lat: 37.708402, lng: -122.393167 },
+          { lat: 37.708352, lng: -122.405446 },
+          { lat: 37.716259, lng: -122.398328 },
+          { lat: 37.736424, lng: -122.406772 },
+          { lat: 37.740763, lng: -122.406914 },
+          { lat: 37.749475, lng: -122.403569 },
+          { lat: 37.751179, lng: -122.396408 },
+          { lat: 37.752311, lng: -122.396513 },
+          { lat: 37.75308, lng: -122.381586 },
+          { lat: 37.75307, lng: -122.381578 },
+        ],
+      ],
+    ],
+  },
+];
+
 const LEGACY_LOCATION_REGIONS: LocationRegion[] = [
   {
     id: "new-york-core",
@@ -247,6 +359,7 @@ const coreCityPresets: LocationPreset[] = [
         id: "san-francisco-city",
         label: "San Francisco",
         polygons: ACTIVE_LOCATION_AREAS["san-francisco-city"],
+        exclusions: SAN_FRANCISCO_EXCLUSIONS,
       },
     ],
   },
@@ -346,8 +459,37 @@ export function getLocationPresetArea(presetId: string) {
   return preset.regions.flatMap((region) => region.polygons);
 }
 
+export function getLocationPresetExclusions(presetId: string) {
+  const preset = getLocationPreset(presetId);
+
+  if (!preset) {
+    return null;
+  }
+
+  return preset.regions.flatMap((region) => region.exclusions ?? []);
+}
+
+export function getLocationPresetExclusionArea(presetId: string) {
+  const exclusions = getLocationPresetExclusions(presetId);
+
+  if (!exclusions) {
+    return null;
+  }
+
+  const area = exclusions.flatMap((exclusion) => exclusion.polygons);
+
+  return area.length ? area : null;
+}
+
 export function getLocationRegionArea(regionId: string) {
   return getLocationRegion(regionId)?.polygons ?? null;
+}
+
+export function getLocationRegionExclusionArea(regionId: string) {
+  const area =
+    getLocationRegion(regionId)?.exclusions?.flatMap((exclusion) => exclusion.polygons) ?? [];
+
+  return area.length ? area : null;
 }
 
 export function getBoundsForRegions(regions: LocationRegion[]): LocationBounds | null {
@@ -378,6 +520,7 @@ export function sampleRandomPointInArea(
   area: LocationArea,
   random: () => number,
   maxAttempts = 1000,
+  exclusionArea: LocationArea | null = null,
 ) {
   const bounds = getBoundsForArea(area);
 
@@ -391,7 +534,7 @@ export function sampleRandomPointInArea(
       lng: bounds.west + (bounds.east - bounds.west) * random(),
     };
 
-    if (pointInArea(point, area)) {
+    if (pointInArea(point, area) && (!exclusionArea || !pointInArea(point, exclusionArea))) {
       return point;
     }
   }

@@ -7,7 +7,9 @@ import {
 import {
   getBoundsForArea,
   getLocationPresetArea,
+  getLocationPresetExclusionArea,
   getLocationRegionArea,
+  getLocationRegionExclusionArea,
 } from "@/lib/location-presets";
 import { applyHintPenalty, maxPointsForRadii } from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
@@ -145,6 +147,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
   const playerNames = new Map((players ?? []).map((player) => [player.id, player.nickname]));
   const mapArea = resolveMapArea(challenge, challengeRound);
   const mapBounds = resolveMapBounds(mapArea);
+  const mapExcludedArea = resolveMapExcludedArea(challenge, challengeRound);
   const maxRoundPoints = maxPointsForRadii(challenge.radii_meters);
   const closerHintRadius = getGetMeCloserHintRadius(challenge.radii_meters);
   const completedRounds =
@@ -201,6 +204,7 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
     currentChallengeRoundId: challengeRound.id,
     mapBounds,
     mapArea,
+    mapExcludedArea,
     clueImageUrl: `/api/clue/${challengeRound.id}`,
     clueHeading: challengeRound.street_view_heading,
     cluePitch: challengeRound.street_view_pitch,
@@ -284,6 +288,32 @@ function resolveMapArea(
   }
 
   throw new Error("Map area is unavailable for this round.");
+}
+
+function resolveMapExcludedArea(
+  challenge: ChallengeRecord,
+  challengeRound: ChallengeRoundRecord,
+): MapArea | null {
+  const effectiveArea = getSourcePayloadMapArea(
+    challengeRound.source_payload,
+    "effectiveExcludedMapArea",
+  );
+
+  if (effectiveArea) {
+    return effectiveArea;
+  }
+
+  const regionId = getSourcePayloadString(challengeRound.source_payload, "regionId");
+  const regionExcludedArea = regionId ? getLocationRegionExclusionArea(regionId) : null;
+
+  if (regionExcludedArea) {
+    return regionExcludedArea;
+  }
+
+  const presetId =
+    getSourcePayloadString(challengeRound.source_payload, "presetId") ?? challenge.source_map_id;
+
+  return getLocationPresetExclusionArea(presetId);
 }
 
 function resolveMapBounds(mapArea: MapArea): MapBounds {

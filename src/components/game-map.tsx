@@ -25,6 +25,7 @@ interface GuessMapProps {
     | null;
   mapBounds: MapBounds;
   mapArea: MapArea;
+  mapExcludedArea?: MapArea | null;
   roundKey: string;
   revealTarget:
     | {
@@ -37,6 +38,8 @@ interface GuessMapProps {
 }
 
 const BOUNDS_OUTLINE_COLOR = "#173f35";
+const EXCLUSION_FILL_COLOR = "#d73a31";
+const EXCLUSION_STROKE_COLOR = "#9f1f19";
 
 function getMapFitPadding(container: HTMLDivElement | null) {
   if (!container) {
@@ -224,6 +227,24 @@ export function GameMap(props: GuessMapProps) {
     overlaysRef.current.forEach((dispose) => dispose());
     overlaysRef.current = [];
 
+    props.mapExcludedArea?.forEach((polygon) => {
+      const exclusionPolygon = new googleMaps.maps.Polygon({
+        clickable: false,
+        fillColor: EXCLUSION_FILL_COLOR,
+        fillOpacity: 0.28,
+        map,
+        paths: polygon,
+        strokeColor: EXCLUSION_STROKE_COLOR,
+        strokeOpacity: 0.9,
+        strokeWeight: 2,
+        zIndex: 1,
+      });
+
+      overlaysRef.current.push(() => {
+        exclusionPolygon.setMap(null);
+      });
+    });
+
     props.guesses.forEach((guess) => {
       const center = {
         lat: guess.guessLat,
@@ -277,7 +298,13 @@ export function GameMap(props: GuessMapProps) {
       });
 
     }
-  }, [props.closerHintCircle, props.guesses, mapReady, props.revealTarget]);
+  }, [
+    props.closerHintCircle,
+    props.guesses,
+    props.mapExcludedArea,
+    mapReady,
+    props.revealTarget,
+  ]);
 
   useEffect(() => {
     const googleMaps = googleRef.current;

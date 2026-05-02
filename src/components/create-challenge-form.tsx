@@ -11,6 +11,7 @@ import { clipAreaToRadius } from "@/lib/domain/play-area";
 import {
   getBoundsForArea,
   getLocationPresetArea,
+  getLocationPresetExclusionArea,
   LOCATION_PRESETS,
   OPEN_LOCATION_PRESET_ID,
   type LocationArea,
@@ -64,8 +65,9 @@ export function CreateChallengeForm() {
     }
 
     const bounds = getBoundsForArea(area);
+    const excludedArea = getLocationPresetExclusionArea(presetId);
 
-    return bounds ? { area, bounds } : null;
+    return bounds ? { area, bounds, excludedArea } : null;
   }, [presetId]);
   const difficultyCenter: LocationLatLng | null = useMemo(
     () =>
@@ -338,6 +340,7 @@ export function CreateChallengeForm() {
             interactive={false}
             mapArea={previewArea}
             mapBounds={previewBounds}
+            mapExcludedArea={basePreview?.excludedArea ?? null}
             revealTarget={null}
             roundKey={`${presetId}:${difficultyMode.id}:${difficultyRadiusMeters ?? "infinite"}:${
               position?.latitude ?? "none"

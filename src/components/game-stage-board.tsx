@@ -307,6 +307,7 @@ export function GameStageBoard(props: GameStageBoardProps) {
               interactive={props.mapInteractive ?? true}
               mapArea={props.game.mapArea}
               mapBounds={props.game.mapBounds}
+              mapExcludedArea={props.game.mapExcludedArea}
               revealTarget={props.activeRevealState?.target ?? null}
               roundKey={props.game.currentChallengeRoundId}
               selectedRadius={props.selectedRadius}

@@ -9,10 +9,13 @@ import { createSeededRandom } from "@/lib/domain/random";
 import {
   getBoundsForArea,
   getLocationPreset,
+  getLocationPresetExclusionArea,
+  getLocationRegionExclusionArea,
   pointInArea,
   sampleRandomPointInArea,
   type LocationArea,
   type LocationLatLng,
+  type LocationRegion,
 } from "@/lib/location-presets";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 import { resolveStreetViewMetadata } from "@/lib/google/street-view";
@@ -39,6 +42,7 @@ export async function POST(request: Request) {
       roundTimeLimitSeconds: input.roundTimeLimitSeconds,
     });
     const presetArea = preset.regions.flatMap((region) => region.polygons);
+    const presetExclusionArea = getLocationPresetExclusionArea(preset.id);
     const finiteDifficulty = difficultyRadiusMeters != null;
     let nextRadiusCenter: LocationLatLng | null =
       finiteDifficulty &&
@@ -59,6 +63,7 @@ export async function POST(request: Request) {
     for (let roundIndex = 0; roundIndex < input.locationCount; roundIndex += 1) {
       const roundArea = resolveRoundGenerationArea({
         baseArea: presetArea,
+        exclusionArea: presetExclusionArea,
         center: nextRadiusCenter,
         radiusMeters: difficultyRadiusMeters,
       });
@@ -77,11 +82,13 @@ export async function POST(request: Request) {
 
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         const sample = finiteDifficulty
-          ? sampleRandomPointInArea(roundArea.mapArea, random)
-          : sampleRandomPointInArea(
-              preset.regions[Math.floor(random() * preset.regions.length)].polygons,
+          ? sampleRandomPointInArea(
+              roundArea.mapArea,
               random,
-            );
+              undefined,
+              roundArea.excludedMapArea,
+            )
+          : sampleRandomPointInAreaForPresetRegion(preset.regions, random);
 
         if (!sample) {
           continue;
@@ -100,6 +107,7 @@ export async function POST(request: Request) {
         if (finiteDifficulty) {
           sourcePayload.effectiveMapArea = roundArea.mapArea;
           sourcePayload.effectiveMapBounds = roundArea.mapBounds;
+          sourcePayload.effectiveExcludedMapArea = roundArea.excludedMapArea;
           sourcePayload.difficulty = {
             modeId: input.difficultyModeId,
             radiusCenter: roundArea.radiusCenter,
@@ -217,6 +225,7 @@ export async function POST(request: Request) {
 
 function resolveRoundGenerationArea(input: {
   baseArea: LocationArea;
+  exclusionArea: LocationArea | null;
   center: LocationLatLng | null;
   radiusMeters: number | null;
 }) {
@@ -227,6 +236,7 @@ function resolveRoundGenerationArea(input: {
       ? {
           mapArea: input.baseArea,
           mapBounds,
+          excludedMapArea: input.exclusionArea,
           radiusCenter: input.center ?? { lat: 0, lng: 0 },
           radiusMeters: Number.POSITIVE_INFINITY,
         }
@@ -237,9 +247,34 @@ function resolveRoundGenerationArea(input: {
     throw new Error("Current location is required for finite difficulty.");
   }
 
-  return clipAreaToRadius({
+  const clipped = clipAreaToRadius({
     area: input.baseArea,
     center: input.center,
     radiusMeters: input.radiusMeters,
   });
+
+  return clipped
+    ? {
+        ...clipped,
+        excludedMapArea: input.exclusionArea,
+      }
+    : null;
+}
+
+function sampleRandomPointInAreaForPresetRegion(
+  regions: LocationRegion[],
+  random: () => number,
+) {
+  const region = regions[Math.floor(random() * regions.length)];
+
+  if (!region) {
+    return null;
+  }
+
+  return sampleRandomPointInArea(
+    region.polygons,
+    random,
+    undefined,
+    getLocationRegionExclusionArea(region.id),
+  );
 }

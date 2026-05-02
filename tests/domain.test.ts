@@ -19,9 +19,11 @@ import {
   getLocationPreset,
   getLocationPresetArea,
   getLocationPresetBounds,
+  getLocationPresetExclusionArea,
   getLocationRegion,
   getLocationRegionArea,
   getLocationRegionBounds,
+  getLocationRegionExclusionArea,
   LOCATION_PRESETS,
   pointInArea,
   sampleRandomPointInArea,
@@ -152,6 +154,18 @@ describe("location presets", () => {
         getLocationPresetArea("san-francisco-walking")!,
       ),
     ).toBe(true);
+  });
+
+  it("exposes San Francisco exclusion areas for Tenderloin and Hunters Point", () => {
+    const sanFranciscoArea = getLocationPresetArea("san-francisco")!;
+    const exclusionArea = getLocationPresetExclusionArea("san-francisco")!;
+
+    expect(getLocationRegionExclusionArea("san-francisco-city")).toEqual(exclusionArea);
+    expect(pointInArea({ lat: 37.783, lng: -122.414 }, sanFranciscoArea)).toBe(true);
+    expect(pointInArea({ lat: 37.783, lng: -122.414 }, exclusionArea)).toBe(true);
+    expect(pointInArea({ lat: 37.73, lng: -122.38 }, sanFranciscoArea)).toBe(true);
+    expect(pointInArea({ lat: 37.73, lng: -122.38 }, exclusionArea)).toBe(true);
+    expect(pointInArea({ lat: 37.7641, lng: -122.4277 }, exclusionArea)).toBe(false);
   });
 });
 

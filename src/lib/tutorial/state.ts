@@ -450,6 +450,7 @@ function buildTutorialGameState(progress: {
     currentChallengeRoundId: "tutorial-round-1",
     mapBounds: TUTORIAL_MAP_BOUNDS,
     mapArea: TUTORIAL_MAP_AREA,
+    mapExcludedArea: null,
     clueImageUrl: TUTORIAL_CLUE_IMAGE_URL,
     clueHeading: TUTORIAL_CLUE.heading,
     cluePitch: TUTORIAL_CLUE.pitch,

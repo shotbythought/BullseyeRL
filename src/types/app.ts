@@ -185,6 +185,7 @@ export interface LiveGameState {
   currentChallengeRoundId: string;
   mapBounds: MapBounds;
   mapArea: MapArea;
+  mapExcludedArea: MapArea | null;
   clueImageUrl: string;
   clueHeading: number;
   cluePitch: number;
