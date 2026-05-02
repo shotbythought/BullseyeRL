@@ -1,4 +1,4 @@
-import { SCORE_STEP } from "@/lib/domain/scoring";
+import { BULLSEYE_RADIUS_METERS } from "@/lib/domain/scoring";
 
 export const ROUND_HINT_TYPES = ["get_me_closer", "point_me"] as const;
 export type RoundHintType = (typeof ROUND_HINT_TYPES)[number];
@@ -6,11 +6,15 @@ export type RoundHintType = (typeof ROUND_HINT_TYPES)[number];
 export const POINT_HINT_DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type PointHintDirection = (typeof POINT_HINT_DIRECTIONS)[number];
 
-export const GET_ME_CLOSER_HINT_COST = 2 * SCORE_STEP;
-export const POINT_ME_HINT_COST = SCORE_STEP;
+export const GET_ME_CLOSER_HINT_COST = 20;
+export const POINT_ME_HINT_COST = 10;
 
-export function getGetMeCloserHintRadius(radii: number[]) {
-  return radii[2] ?? null;
+export function getGetMeCloserHintRadius(maxRadiusMeters: number) {
+  if (!Number.isFinite(maxRadiusMeters) || maxRadiusMeters <= BULLSEYE_RADIUS_METERS) {
+    return null;
+  }
+
+  return Math.max(BULLSEYE_RADIUS_METERS, Math.round(maxRadiusMeters * 0.4));
 }
 
 export function pointHintDirectionFromBearing(bearing: number): PointHintDirection {

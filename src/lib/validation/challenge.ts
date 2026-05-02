@@ -1,8 +1,12 @@
 import { z } from "zod";
 
-import { getDifficultyMode, isFiniteDifficultyMode } from "@/lib/domain/difficulty";
+import {
+  calculateDifficultyRadiusMeters,
+  getDifficultyMode,
+  isFiniteDifficultyMode,
+} from "@/lib/domain/difficulty";
 import { OPEN_LOCATION_PRESET_ID } from "@/lib/location-presets";
-import { validateRadii } from "@/lib/domain/scoring";
+import { getGuessRadiusMaxMeters, validateGuessRadiusBounds } from "@/lib/domain/scoring";
 
 export const challengeInputSchema = z
   .object({
@@ -13,11 +17,6 @@ export const challengeInputSchema = z
     difficultyModeId: z.string().min(1).optional().default("infinite"),
     difficultyOriginLat: z.coerce.number().min(-90).max(90).nullable().optional(),
     difficultyOriginLng: z.coerce.number().min(-180).max(180).nullable().optional(),
-    radiiMeters: z
-      .array(z.coerce.number().int().positive())
-      .min(1)
-      .max(12)
-      .transform((radii) => validateRadii(radii)),
   })
   .superRefine((input, context) => {
     const mode = getDifficultyMode(input.difficultyModeId);
@@ -29,6 +28,26 @@ export const challengeInputSchema = z
         path: ["difficultyModeId"],
       });
       return;
+    }
+
+    const difficultyRadiusMeters = calculateDifficultyRadiusMeters({
+      difficultyModeId: input.difficultyModeId,
+      roundTimeLimitSeconds: input.roundTimeLimitSeconds,
+    });
+
+    try {
+      validateGuessRadiusBounds({
+        maxRadiusMeters: getGuessRadiusMaxMeters(difficultyRadiusMeters),
+      });
+    } catch (error) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Selected difficulty radius is too small for a 50 meter bullseye.",
+        path: ["difficultyModeId"],
+      });
     }
 
     const finiteDifficulty = isFiniteDifficultyMode(input.difficultyModeId);

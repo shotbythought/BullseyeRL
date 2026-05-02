@@ -3,7 +3,18 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import type { GeolocationSnapshot } from "@/hooks/use-geolocation";
-import type { PointHintDirection, RoundHintType } from "@/lib/domain/hints";
+import {
+  getGetMeCloserHintRadius,
+  type PointHintDirection,
+  type RoundHintType,
+} from "@/lib/domain/hints";
+import {
+  FIRST_NON_BULLSEYE_RADIUS_METERS,
+  pointsForRadius,
+  RADIUS_SLIDER_MAX,
+  radiusFromSliderPosition,
+  sliderPositionFromRadius,
+} from "@/lib/domain/scoring";
 import { cn, formatCountdown, formatMeters, formatScore } from "@/lib/utils";
 import type { LiveGameState, LiveGuess } from "@/types/app";
 import { GameMap } from "@/components/game-map";
@@ -153,7 +164,27 @@ export function GameStageBoard(props: GameStageBoardProps) {
   const showAdvanceAction = props.activeRevealState != null || props.roundTimerExpired;
   const showCompletedAction =
     props.activeRevealState?.isGameComplete ? (props.showCompletedAction ?? true) : true;
-  const getMeCloserHintRadius = props.game.radiiMeters[2] ?? null;
+  const getMeCloserHintRadius = getGetMeCloserHintRadius(props.game.maxGuessRadiusMeters);
+  const selectedRadiusRawPoints =
+    props.selectedRadius == null
+      ? null
+      : pointsForRadius(
+          props.selectedRadius,
+          props.game.maxGuessRadiusMeters,
+          props.game.minGuessRadiusMeters,
+        );
+  const firstNonBullseyeRadius = Math.min(
+    FIRST_NON_BULLSEYE_RADIUS_METERS,
+    props.game.maxGuessRadiusMeters,
+  );
+  const firstNonBullseyeSliderPercent =
+    (sliderPositionFromRadius(
+      firstNonBullseyeRadius,
+      props.game.maxGuessRadiusMeters,
+      props.game.minGuessRadiusMeters,
+    ) /
+      RADIUS_SLIDER_MAX) *
+    100;
   const hudTimeLeftLine =
     props.game.roundTimeLimitSeconds == null
       ? "No time limit"
@@ -465,47 +496,51 @@ export function GameStageBoard(props: GameStageBoardProps) {
                     className="h-2.5 w-full cursor-grab appearance-none rounded-full bg-ink/15 [accent-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45 [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-10 [&::-moz-range-track]:h-2.5 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-ink/15 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-white/95 [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-10 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:shadow-[0_2px_12px_rgba(13,22,19,0.38)] [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-white/95 [&::-webkit-slider-thumb]:transition-[box-shadow,transform] [&::-webkit-slider-thumb]:duration-150 [&::-webkit-slider-thumb]:hover:scale-[1.06] [&::-webkit-slider-thumb]:hover:shadow-[0_4px_18px_rgba(13,22,19,0.5)] [&::-webkit-slider-thumb]:active:scale-100 [&::-webkit-slider-thumb]:active:cursor-grabbing"
                     disabled={!canChangeRadius || !!props.activeRevealState || props.roundTimerExpired}
                     id="guess-radius-slider"
-                    max={Math.max(0, props.game.radiiMeters.length - 1)}
+                    max={RADIUS_SLIDER_MAX}
                     min={0}
                     data-tutorial-target={props.targetIds?.radiusSlider}
                     onChange={(event) => {
-                      const index = Number.parseInt(event.target.value, 10);
-                      const next = props.game.radiiMeters[index];
-                      if (next != null) {
-                        props.onSelectedRadiusChange(next);
-                      }
+                      props.onSelectedRadiusChange(
+                        radiusFromSliderPosition(
+                          Number.parseInt(event.target.value, 10),
+                          props.game.maxGuessRadiusMeters,
+                          props.game.minGuessRadiusMeters,
+                        ),
+                      );
                     }}
                     step={1}
                     type="range"
-                    value={Math.min(
-                      Math.max(
-                        0,
-                        props.selectedRadius != null
-                          ? props.game.radiiMeters.indexOf(props.selectedRadius)
-                          : 0,
-                      ),
-                      Math.max(0, props.game.radiiMeters.length - 1),
+                    value={sliderPositionFromRadius(
+                      props.selectedRadius ?? props.game.minGuessRadiusMeters,
+                      props.game.maxGuessRadiusMeters,
+                      props.game.minGuessRadiusMeters,
                     )}
                   />
                 </div>
-                <div className="relative z-0 mt-2.5 flex flex-wrap justify-between gap-1 px-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.1em] leading-none">
-                  {props.game.radiiMeters.map((radius) => (
-                    <button
-                      className={cn(
-                        "rounded-full border px-2 py-1 text-[0.58rem] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35 sm:text-[0.62rem]",
-                        props.selectedRadius === radius
-                          ? "border-ink/22 bg-ink text-white"
-                          : "border-ink/10 bg-white text-ink/55 hover:border-ink/20 hover:text-ink",
-                      )}
-                      data-tutorial-target={props.targetIds?.radiusOptionIds?.[radius]}
-                      disabled={!canChangeRadius || !!props.activeRevealState || props.roundTimerExpired}
-                      key={radius}
-                      onClick={() => props.onSelectedRadiusChange(radius)}
-                      type="button"
+                <div className="mt-2.5 flex items-center justify-center">
+                  <span className="rounded-full border border-ink/10 bg-white px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-ink sm:text-xs">
+                    {formatMeters(props.selectedRadius)} ·{" "}
+                    {selectedRadiusRawPoints == null
+                      ? "0"
+                      : formatScore(selectedRadiusRawPoints)}{" "}
+                    pts
+                  </span>
+                </div>
+                <div className="relative z-0 mt-2 min-h-4 px-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.1em] leading-none text-ink/55 sm:text-[0.62rem]">
+                  <span className="absolute left-0 top-0">
+                    {formatMeters(props.game.minGuessRadiusMeters)}
+                  </span>
+                  {firstNonBullseyeRadius < props.game.maxGuessRadiusMeters ? (
+                    <span
+                      className="absolute top-0 -translate-x-1/2"
+                      style={{ left: `${firstNonBullseyeSliderPercent}%` }}
                     >
-                      {formatMeters(radius)}
-                    </button>
-                  ))}
+                      {formatMeters(firstNonBullseyeRadius)}
+                    </span>
+                  ) : null}
+                  <span className="absolute right-0 top-0">
+                    {formatMeters(props.game.maxGuessRadiusMeters)}
+                  </span>
                 </div>
               </div>
               {props.extraMapAction ? (
@@ -654,7 +689,7 @@ export function GameStageBoard(props: GameStageBoardProps) {
                     ? `Hint circle live on the map at ${formatMeters(props.game.hints.getMeCloser.circle.radiusMeters)}.`
                     : props.game.hints.getMeCloser.isAvailable && getMeCloserHintRadius != null
                       ? `Show me a ${formatMeters(getMeCloserHintRadius)} circle containing the target.`
-                      : "Requires at least 3 radius tiers in this challenge."
+                      : "Unavailable for this challenge."
                 }
                 detail={`-${formatScore(props.game.hints.getMeCloser.costPoints)} points`}
                 disabled={

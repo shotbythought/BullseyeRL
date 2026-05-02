@@ -30,12 +30,21 @@ import {
   type LocationArea,
 } from "../src/lib/location-presets";
 import {
+  BULLSEYE_RADIUS_METERS,
+  FIRST_NON_BULLSEYE_POINTS,
+  FIRST_NON_BULLSEYE_RADIUS_METERS,
+  INFINITE_GUESS_RADIUS_MAX_METERS,
+  MAX_ROUND_POINTS,
+  RADIUS_SLIDER_BULLSEYE_LOCK_END,
+  RADIUS_SLIDER_MAX,
   applyHintPenalty,
-  SCORE_STEP,
   didImproveBestRadius,
+  getGuessRadiusMaxMeters,
   maxPointsForRadii,
   pointsForRadius,
+  radiusFromSliderPosition,
   scorecardLabelForRadius,
+  sliderPositionFromRadius,
   validateRadii,
 } from "../src/lib/domain/scoring";
 
@@ -291,29 +300,54 @@ describe("scoring helpers", () => {
     expect(() => validateRadii([100, 25])).toThrow(/ascending/);
   });
 
-  it("maps smallest successful radius to max points", () => {
-    const radii = [25, 100, 250, 500];
-
-    expect(pointsForRadius(radii, 25)).toBe(4 * SCORE_STEP);
-    expect(pointsForRadius(radii, 100)).toBe(3 * SCORE_STEP);
-    expect(pointsForRadius(radii, 500)).toBe(1 * SCORE_STEP);
-    expect(pointsForRadius(radii, null)).toBe(0);
+  it("maps successful radii to log-scale points", () => {
+    expect(pointsForRadius(50, 5000)).toBe(MAX_ROUND_POINTS);
+    expect(pointsForRadius(250, 5000)).toBe(FIRST_NON_BULLSEYE_POINTS);
+    expect(pointsForRadius(5000, 5000)).toBe(1);
+    expect(pointsForRadius(null, 5000)).toBe(0);
+    expect(pointsForRadius(50, 50)).toBe(MAX_ROUND_POINTS);
   });
 
-  it("labels successful radii from best tier downward", () => {
-    expect(scorecardLabelForRadius([25], 25)).toBe("Bullseye");
-    expect(scorecardLabelForRadius([25], null)).toBe("Miss");
-    expect(scorecardLabelForRadius([25, 100], 100)).toBe("Fair");
-    expect(scorecardLabelForRadius([25, 100, 250, 500], 25)).toBe("Bullseye");
-    expect(scorecardLabelForRadius([25, 100, 250, 500], 100)).toBe("Fair");
-    expect(scorecardLabelForRadius([25, 100, 250, 500], 250)).toBe("mid minus");
-    expect(scorecardLabelForRadius([25, 100, 250, 500], 500)).toBe("garbo");
+  it("awards equal extra points for halving radius", () => {
+    const twoKmToOneKmDelta = pointsForRadius(1000, 5000) - pointsForRadius(2000, 5000);
+    const oneKmToFiveHundredDelta = pointsForRadius(500, 5000) - pointsForRadius(1000, 5000);
+
+    expect(Math.abs(twoKmToOneKmDelta - oneKmToFiveHundredDelta)).toBeLessThanOrEqual(1);
+  });
+
+  it("maps slider positions to log-scale radii", () => {
+    expect(radiusFromSliderPosition(0, 5000)).toBe(BULLSEYE_RADIUS_METERS);
+    expect(radiusFromSliderPosition(RADIUS_SLIDER_BULLSEYE_LOCK_END, 5000)).toBe(
+      BULLSEYE_RADIUS_METERS,
+    );
+    expect(radiusFromSliderPosition(RADIUS_SLIDER_BULLSEYE_LOCK_END + 1, 5000)).toBe(
+      FIRST_NON_BULLSEYE_RADIUS_METERS,
+    );
+    expect(radiusFromSliderPosition(RADIUS_SLIDER_MAX, 5000)).toBe(5000);
+    expect(sliderPositionFromRadius(BULLSEYE_RADIUS_METERS, 5000)).toBe(0);
+    expect(sliderPositionFromRadius(FIRST_NON_BULLSEYE_RADIUS_METERS, 5000)).toBe(
+      RADIUS_SLIDER_BULLSEYE_LOCK_END + 1,
+    );
+    expect(sliderPositionFromRadius(5000, 5000)).toBe(RADIUS_SLIDER_MAX);
+  });
+
+  it("derives max guess radius from difficulty", () => {
+    expect(getGuessRadiusMaxMeters(null)).toBe(INFINITE_GUESS_RADIUS_MAX_METERS);
+    expect(getGuessRadiusMaxMeters(161)).toBe(161);
+  });
+
+  it("labels successful radii by score band", () => {
+    expect(scorecardLabelForRadius(50, 5000)).toBe("Bullseye");
+    expect(scorecardLabelForRadius(null, 5000)).toBe("Miss");
+    expect(scorecardLabelForRadius(100, 5000)).toBe("Fair");
+    expect(scorecardLabelForRadius(750, 5000)).toBe("mid minus");
+    expect(scorecardLabelForRadius(5000, 5000)).toBe("garbo");
   });
 
   it("applies hint penalties without going negative", () => {
-    expect(applyHintPenalty(4000, 1000)).toBe(3000);
-    expect(applyHintPenalty(1000, 2000)).toBe(0);
-    expect(maxPointsForRadii([25, 100, 250, 500])).toBe(4 * SCORE_STEP);
+    expect(applyHintPenalty(100, 10)).toBe(90);
+    expect(applyHintPenalty(10, 20)).toBe(0);
+    expect(maxPointsForRadii([25, 100, 250, 500])).toBe(MAX_ROUND_POINTS);
   });
 
   it("detects only strictly smaller successes as improvements", () => {
@@ -325,9 +359,9 @@ describe("scoring helpers", () => {
 });
 
 describe("hint helpers", () => {
-  it("uses the third radius tier for get me closer", () => {
-    expect(getGetMeCloserHintRadius([25, 100, 250, 500])).toBe(250);
-    expect(getGetMeCloserHintRadius([25, 100])).toBeNull();
+  it("uses 40 percent of max radius for get me closer", () => {
+    expect(getGetMeCloserHintRadius(5000)).toBe(2000);
+    expect(getGetMeCloserHintRadius(50)).toBeNull();
   });
 
   it("maps bearings into four cardinal directions", () => {

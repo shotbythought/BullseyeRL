@@ -56,6 +56,8 @@ export interface ChallengeRecord {
   difficulty_origin_lat: number | null;
   difficulty_origin_lng: number | null;
   radii_meters: number[];
+  guess_radius_min_meters: number;
+  guess_radius_max_meters: number;
   import_seed: string;
   status: ChallengeStatus;
   created_at: string;
@@ -175,6 +177,8 @@ export interface LiveGameState {
   roundTimeRemainingSeconds: number | null;
   roundTimedOut: boolean;
   radiiMeters: number[];
+  minGuessRadiusMeters: number;
+  maxGuessRadiusMeters: number;
   bestSuccessfulRadiusMeters: number | null;
   hintPenaltyPoints: number;
   maxAvailableRoundPoints: number;

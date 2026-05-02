@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { HomeLink } from "@/components/brand-mark";
-import { SCORE_STEP, scorecardLabelForRadius, type ScorecardLabel } from "@/lib/domain/scoring";
+import { MAX_ROUND_POINTS, scorecardLabelForRadius, type ScorecardLabel } from "@/lib/domain/scoring";
 import { formatMeters, formatScore } from "@/lib/utils";
 import type { LiveGameState } from "@/types/app";
 import { StatusChip } from "@/components/status-chip";
@@ -105,8 +105,9 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {completedRounds.map((round) => {
             const label = scorecardLabelForRadius(
-              props.game.radiiMeters,
               round.bestSuccessfulRadiusMeters,
+              props.game.maxGuessRadiusMeters,
+              props.game.minGuessRadiusMeters,
             );
 
             return (
@@ -150,7 +151,7 @@ export function GameFinishedScreen(props: { game: LiveGameState }) {
 
 function buildShareText(game: LiveGameState, challengeUrl: string) {
   const roundScores = (game.completedRounds ?? []).map((round) =>
-    round.score === 0 ? "0" : `${Math.round(round.score / SCORE_STEP)}k`,
+    round.score === 0 ? "0" : String(round.score),
   );
 
   return [
@@ -172,7 +173,7 @@ function scoreEmoji(score: number, maxRoundPoints: number) {
     return "⬛";
   }
 
-  const ratio = score / Math.max(maxRoundPoints, SCORE_STEP);
+  const ratio = score / Math.max(maxRoundPoints, MAX_ROUND_POINTS);
 
   if (ratio >= 0.99) {
     return "🟩";

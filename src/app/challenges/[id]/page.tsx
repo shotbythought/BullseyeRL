@@ -4,7 +4,7 @@ import { ChallengeLinkShare } from "@/components/challenge-link-share";
 import { StartGameCard } from "@/components/start-game-card";
 import { getChallengeWithRounds } from "@/lib/data/queries";
 import { getDifficultyMode } from "@/lib/domain/difficulty";
-import { formatDurationLabel } from "@/lib/utils";
+import { formatDurationLabel, formatMeters } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +38,12 @@ export default async function ChallengeDetailPage({
                 value={
                   getDifficultyMode(challenge.difficulty_mode_id)?.label ?? "Infinite radius"
                 }
+              />
+              <MetaCard
+                label="Guess radius"
+                value={`${formatMeters(challenge.guess_radius_min_meters)} - ${formatMeters(
+                  challenge.guess_radius_max_meters,
+                )}`}
               />
             </dl>
           </div>

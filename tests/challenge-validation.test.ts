@@ -8,7 +8,6 @@ describe("challenge timer validation", () => {
       presetId: "san-francisco",
       locationCount: 3,
       guessLimitPerRound: 5,
-      radiiMeters: [50, 500, 2000, 5000],
     });
 
     expect(challenge.roundTimeLimitSeconds).toBe(3600);
@@ -20,7 +19,6 @@ describe("challenge timer validation", () => {
       locationCount: 3,
       guessLimitPerRound: 5,
       roundTimeLimitSeconds: null,
-      radiiMeters: [50, 500, 2000, 5000],
     });
 
     expect(challenge.roundTimeLimitSeconds).toBeNull();
@@ -31,7 +29,6 @@ describe("challenge timer validation", () => {
       presetId: "san-francisco",
       locationCount: 3,
       guessLimitPerRound: 5,
-      radiiMeters: [50, 500, 2000, 5000],
     });
 
     expect(challenge.difficultyModeId).toBe("infinite");
@@ -46,7 +43,6 @@ describe("challenge timer validation", () => {
         locationCount: 3,
         guessLimitPerRound: 5,
         difficultyModeId: "biking",
-        radiiMeters: [50, 500, 2000, 5000],
       }),
     ).toThrow(/Current latitude/);
 
@@ -57,7 +53,6 @@ describe("challenge timer validation", () => {
       difficultyModeId: "biking",
       difficultyOriginLat: 37.76,
       difficultyOriginLng: -122.42,
-      radiiMeters: [50, 500, 2000, 5000],
     });
 
     expect(challenge.difficultyModeId).toBe("biking");
@@ -70,8 +65,21 @@ describe("challenge timer validation", () => {
         locationCount: 3,
         guessLimitPerRound: 5,
         difficultyModeId: "infinite",
-        radiiMeters: [50, 500, 2000, 5000],
       }),
     ).toThrow(/finite difficulty/);
+  });
+
+  it("rejects finite difficulty when the max guess radius is below the bullseye", () => {
+    expect(() =>
+      challengeInputSchema.parse({
+        presetId: "san-francisco",
+        locationCount: 3,
+        guessLimitPerRound: 5,
+        roundTimeLimitSeconds: 30,
+        difficultyModeId: "quarter-mile",
+        difficultyOriginLat: 37.76,
+        difficultyOriginLng: -122.42,
+      }),
+    ).toThrow(/at least 50 meters/);
   });
 });

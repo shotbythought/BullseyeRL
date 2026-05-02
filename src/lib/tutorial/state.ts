@@ -114,7 +114,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: "pick-large-radius",
     title: "Choose a big safety ring",
     description: "Start wide when you are nearly in range but not confident enough to risk a tiny ring.",
-    rationale: "Tap the 5.0 km option so you can test a safe first guess.",
+    rationale: "Drag the radius slider to 5.0 km so you can test a safe first guess.",
     target: TUTORIAL_TARGET_KEYS.largeRadiusOption,
   },
   {
@@ -156,7 +156,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     id: "pick-small-radius",
     title: "Tighten the ring",
     description: "Once you are close, shrink the bullseye to the smallest radius you trust.",
-    rationale: "Tap 50 m for the final bullseye attempt.",
+    rationale: "Drag the radius slider back to 50 m for the final bullseye attempt.",
     target: TUTORIAL_TARGET_KEYS.smallRadiusOption,
   },
   {
@@ -202,6 +202,8 @@ const INITIAL_RADIUS = TUTORIAL_RADII[0];
 const LARGE_RADIUS = TUTORIAL_RADII[TUTORIAL_RADII.length - 1];
 const SMALL_RADIUS = TUTORIAL_RADII[0];
 const MAX_ROUND_POINTS = maxPointsForRadii([...TUTORIAL_RADII]);
+const MIN_GUESS_RADIUS = TUTORIAL_RADII[0];
+const MAX_GUESS_RADIUS = TUTORIAL_RADII[TUTORIAL_RADII.length - 1];
 const INITIAL_GUESS_DISTANCE_METERS = haversineDistanceMeters(
   TUTORIAL_START_POSITION.latitude,
   TUTORIAL_START_POSITION.longitude,
@@ -209,7 +211,7 @@ const INITIAL_GUESS_DISTANCE_METERS = haversineDistanceMeters(
   TUTORIAL_TARGET.lng,
 );
 const FINAL_ROUND_SCORE = applyHintPenalty(
-  pointsForRadius([...TUTORIAL_RADII], SMALL_RADIUS),
+  pointsForRadius(SMALL_RADIUS, MAX_GUESS_RADIUS, MIN_GUESS_RADIUS),
   GET_ME_CLOSER_HINT_COST,
 );
 const FINAL_GUESS_DISTANCE_METERS = haversineDistanceMeters(
@@ -440,6 +442,8 @@ function buildTutorialGameState(progress: {
     roundTimeRemainingSeconds: null,
     roundTimedOut: false,
     radiiMeters: [...TUTORIAL_RADII],
+    minGuessRadiusMeters: MIN_GUESS_RADIUS,
+    maxGuessRadiusMeters: MAX_GUESS_RADIUS,
     bestSuccessfulRadiusMeters: progress.finalGuessConfirmed ? SMALL_RADIUS : null,
     hintPenaltyPoints,
     maxAvailableRoundPoints: applyHintPenalty(MAX_ROUND_POINTS, hintPenaltyPoints),

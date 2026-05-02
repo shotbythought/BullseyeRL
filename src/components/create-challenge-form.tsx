@@ -8,6 +8,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { authorizedJsonFetch } from "@/lib/api/client";
 import { calculateDifficultyRadiusMeters, DIFFICULTY_MODES } from "@/lib/domain/difficulty";
 import { clipAreaToRadius } from "@/lib/domain/play-area";
+import { BULLSEYE_RADIUS_METERS, getGuessRadiusMaxMeters } from "@/lib/domain/scoring";
 import {
   getBoundsForArea,
   getLocationPresetArea,
@@ -19,13 +20,6 @@ import {
   type LocationLatLng,
 } from "@/lib/location-presets";
 import { cn, formatMeters } from "@/lib/utils";
-
-function parseRadii(input: string) {
-  return input
-    .split(",")
-    .map((chunk) => Number(chunk.trim()))
-    .filter((value) => Number.isFinite(value));
-}
 
 export function CreateChallengeForm() {
   const router = useRouter();
@@ -57,6 +51,8 @@ export function CreateChallengeForm() {
     difficultyModeId: difficultyMode.id,
     roundTimeLimitSeconds,
   });
+  const guessRadiusMaxMeters = getGuessRadiusMaxMeters(difficultyRadiusMeters);
+  const guessRadiusTooSmall = guessRadiusMaxMeters < BULLSEYE_RADIUS_METERS;
   const basePreview = useMemo(() => {
     const area = getLocationPresetArea(presetId);
 
@@ -97,7 +93,7 @@ export function CreateChallengeForm() {
     ? clippedPreview?.mapBounds ?? null
     : basePreview?.bounds ?? null;
   const finiteDifficultyBlocked =
-    finiteDifficulty && (!position || !!geolocationError || !clippedPreview);
+    finiteDifficulty && (!position || !!geolocationError || !clippedPreview || guessRadiusTooSmall);
 
   useEffect(() => {
     if (!availableDifficultyModes.some((mode) => mode.id === difficultyModeId)) {
@@ -108,6 +104,11 @@ export function CreateChallengeForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (guessRadiusTooSmall) {
+      setError("The selected difficulty radius must allow at least a 50 m bullseye.");
+      return;
+    }
 
     if (finiteDifficulty && (!position || !clippedPreview)) {
       setError(
@@ -127,7 +128,6 @@ export function CreateChallengeForm() {
       difficultyModeId: difficultyMode.id,
       difficultyOriginLat: finiteDifficulty ? position?.latitude : null,
       difficultyOriginLng: finiteDifficulty ? position?.longitude : null,
-      radiiMeters: parseRadii(String(formData.get("radiiMeters") ?? "")),
     };
 
     startTransition(async () => {
@@ -258,31 +258,48 @@ export function CreateChallengeForm() {
           </span>
         </div>
 
-        <input
-          aria-label="Difficulty"
-          aria-valuetext={difficultyMode.label}
-          className="h-2.5 w-full cursor-grab appearance-none rounded-full bg-ink/15 [accent-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95 active:cursor-grabbing [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-white/95 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-white/95"
-          id="difficultySlider"
-          max={availableDifficultyModes.length - 1}
-          min={0}
-          onChange={(event) => {
-            const nextIndex = Number.parseInt(event.target.value, 10);
-            const nextMode = availableDifficultyModes[nextIndex];
-
-            if (nextMode) {
-              setDifficultyModeId(nextMode.id);
-            }
+        <div
+          style={{
+            marginLeft: "auto",
+            marginRight: "auto",
+            width:
+              availableDifficultyModes.length <= 1
+                ? "100%"
+                : `min(100%, calc(${
+                    ((availableDifficultyModes.length - 1) / availableDifficultyModes.length) *
+                    100
+                  }% + 0.4rem))`,
           }}
-          step={1}
-          type="range"
-          value={difficultyIndex}
-        />
+        >
+          <input
+            aria-label="Difficulty"
+            aria-valuetext={difficultyMode.label}
+            className="h-2.5 w-full cursor-grab appearance-none rounded-full bg-ink/15 [accent-color:transparent] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white/95 active:cursor-grabbing [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:cursor-grab [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-ink [&::-moz-range-thumb]:ring-2 [&::-moz-range-thumb]:ring-white/95 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:bg-ink [&::-webkit-slider-thumb]:ring-2 [&::-webkit-slider-thumb]:ring-white/95"
+            id="difficultySlider"
+            max={availableDifficultyModes.length - 1}
+            min={0}
+            onChange={(event) => {
+              const nextIndex = Number.parseInt(event.target.value, 10);
+              const nextMode = availableDifficultyModes[nextIndex];
 
-        <div className="flex flex-wrap justify-between gap-1">
+              if (nextMode) {
+                setDifficultyModeId(nextMode.id);
+              }
+            }}
+            step={1}
+            type="range"
+            value={difficultyIndex}
+          />
+        </div>
+
+        <div
+          className="grid gap-1 px-2"
+          style={{ gridTemplateColumns: `repeat(${availableDifficultyModes.length}, minmax(0, 1fr))` }}
+        >
           {availableDifficultyModes.map((mode) => (
             <button
               className={cn(
-                "rounded-full border px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35",
+                "justify-self-center rounded-full border px-2 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.1em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moss/35",
                 difficultyMode.id === mode.id
                   ? "border-ink/22 bg-ink text-white"
                   : "border-ink/10 bg-white text-ink/55 hover:border-ink/20 hover:text-ink",
@@ -303,6 +320,10 @@ export function CreateChallengeForm() {
                 timerEnabled ? "the round timer" : "a one-hour no-timer baseline"
               }.`}
         </p>
+        <p className="text-sm leading-6 text-ink/60">
+          Guess radius: {formatMeters(BULLSEYE_RADIUS_METERS)} bullseye to{" "}
+          {formatMeters(guessRadiusMaxMeters)} max.
+        </p>
 
         {finiteDifficulty ? (
           <p
@@ -317,7 +338,9 @@ export function CreateChallengeForm() {
               ? geolocationError
               : !position
                 ? "Allow current location to preview and create this finite-radius challenge."
-                : clippedPreview
+                : guessRadiusTooSmall
+                  ? "Increase the timer or difficulty radius so the max guess radius is at least 50 m."
+                  : clippedPreview
                   ? "Preview is clipped to your current location and the selected play area."
                   : "This radius does not overlap the selected play area."}
           </p>
@@ -348,21 +371,6 @@ export function CreateChallengeForm() {
             selectedRadius={finiteDifficulty ? difficultyRadiusMeters : null}
           />
         ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-ink/70" htmlFor="radiiMeters">
-          Bullseye radii (meters, ascending)
-        </label>
-        <input
-          className="w-full rounded-xl border border-ink/10 bg-white/90 px-5 py-4 text-base shadow-sm outline-none transition focus:border-moss focus:ring-4 focus:ring-moss/10"
-          defaultValue="50,500,2000,5000"
-          id="radiiMeters"
-          name="radiiMeters"
-          placeholder="50,500,2000,5000"
-          required
-          type="text"
-        />
       </div>
 
       {error ? (

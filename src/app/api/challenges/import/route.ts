@@ -7,6 +7,11 @@ import { calculateDifficultyRadiusMeters, getDifficultyMode } from "@/lib/domain
 import { clipAreaToRadius } from "@/lib/domain/play-area";
 import { createSeededRandom } from "@/lib/domain/random";
 import {
+  BULLSEYE_RADIUS_METERS,
+  getGuessRadiusMaxMeters,
+  validateGuessRadiusBounds,
+} from "@/lib/domain/scoring";
+import {
   getBoundsForArea,
   getLocationPreset,
   getLocationPresetExclusionArea,
@@ -40,6 +45,9 @@ export async function POST(request: Request) {
     const difficultyRadiusMeters = calculateDifficultyRadiusMeters({
       difficultyModeId: input.difficultyModeId,
       roundTimeLimitSeconds: input.roundTimeLimitSeconds,
+    });
+    const guessRadiusBounds = validateGuessRadiusBounds({
+      maxRadiusMeters: getGuessRadiusMaxMeters(difficultyRadiusMeters),
     });
     const presetArea = preset.regions.flatMap((region) => region.polygons);
     const presetExclusionArea = getLocationPresetExclusionArea(preset.id);
@@ -185,7 +193,12 @@ export async function POST(request: Request) {
             : difficultyMode.milesPerHour * 1609.344,
         difficulty_origin_lat: finiteDifficulty ? input.difficultyOriginLat : null,
         difficulty_origin_lng: finiteDifficulty ? input.difficultyOriginLng : null,
-        radii_meters: input.radiiMeters,
+        radii_meters:
+          guessRadiusBounds.maxRadiusMeters === BULLSEYE_RADIUS_METERS
+            ? [BULLSEYE_RADIUS_METERS]
+            : [BULLSEYE_RADIUS_METERS, guessRadiusBounds.maxRadiusMeters],
+        guess_radius_min_meters: guessRadiusBounds.minRadiusMeters,
+        guess_radius_max_meters: guessRadiusBounds.maxRadiusMeters,
         import_seed: seed,
         status: "ready",
         created_by: user.id,

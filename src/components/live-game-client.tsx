@@ -62,9 +62,11 @@ export function LiveGameClient(props: { gameId: string }) {
     setGame(response);
     previousGameRef.current = response;
     setSelectedRadius((previous) =>
-      previous && response.radiiMeters.includes(previous)
+      previous &&
+      previous >= response.minGuessRadiusMeters &&
+      previous <= response.maxGuessRadiusMeters
         ? previous
-        : response.radiiMeters[0] ?? null,
+        : response.minGuessRadiusMeters,
     );
 
     if (shouldShowJustCompletedReveal(previousGame, response)) {

@@ -11,7 +11,11 @@ import {
   getLocationRegionArea,
   getLocationRegionExclusionArea,
 } from "@/lib/location-presets";
-import { applyHintPenalty, maxPointsForRadii } from "@/lib/domain/scoring";
+import {
+  BULLSEYE_RADIUS_METERS,
+  applyHintPenalty,
+  maxPointsForRadiusBounds,
+} from "@/lib/domain/scoring";
 import { maybeExpireCurrentRound } from "@/lib/data/round-timeouts";
 import type {
   ChallengeRecord,
@@ -148,8 +152,13 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
   const mapArea = resolveMapArea(challenge, challengeRound);
   const mapBounds = resolveMapBounds(mapArea);
   const mapExcludedArea = resolveMapExcludedArea(challenge, challengeRound);
-  const maxRoundPoints = maxPointsForRadii(challenge.radii_meters);
-  const closerHintRadius = getGetMeCloserHintRadius(challenge.radii_meters);
+  const minGuessRadiusMeters = challenge.guess_radius_min_meters ?? BULLSEYE_RADIUS_METERS;
+  const maxGuessRadiusMeters =
+    challenge.guess_radius_max_meters ??
+    challenge.radii_meters[challenge.radii_meters.length - 1] ??
+    5000;
+  const maxRoundPoints = maxPointsForRadiusBounds();
+  const closerHintRadius = getGetMeCloserHintRadius(maxGuessRadiusMeters);
   const completedRounds =
     game.status === "completed"
       ? await getCompletedRounds({
@@ -191,6 +200,8 @@ export async function getLiveGameState(gameId: string, viewerUserId: string): Pr
           : Math.max(0, Math.ceil((roundExpiresAtMs - Date.now()) / 1000)),
     roundTimedOut,
     radiiMeters: challenge.radii_meters,
+    minGuessRadiusMeters,
+    maxGuessRadiusMeters,
     bestSuccessfulRadiusMeters: currentGameRound.best_successful_radius_meters,
     hintPenaltyPoints: currentGameRound.hint_penalty_points,
     maxAvailableRoundPoints: applyHintPenalty(

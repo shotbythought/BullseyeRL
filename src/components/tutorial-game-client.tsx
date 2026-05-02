@@ -17,11 +17,11 @@ import {
 const TUTORIAL_TARGET_IDS: Record<TutorialTargetKey, string | null> = {
   [TUTORIAL_TARGET_KEYS.clueImage]: "tutorial-clue-image",
   [TUTORIAL_TARGET_KEYS.mapToggle]: "tutorial-map-toggle",
-  [TUTORIAL_TARGET_KEYS.largeRadiusOption]: "tutorial-radius-large",
+  [TUTORIAL_TARGET_KEYS.largeRadiusOption]: "tutorial-radius-slider",
   [TUTORIAL_TARGET_KEYS.hintsButton]: "tutorial-hints-button",
   [TUTORIAL_TARGET_KEYS.getMeCloserHint]: "tutorial-get-me-closer",
   [TUTORIAL_TARGET_KEYS.walkAction]: null,
-  [TUTORIAL_TARGET_KEYS.smallRadiusOption]: "tutorial-radius-small",
+  [TUTORIAL_TARGET_KEYS.smallRadiusOption]: "tutorial-radius-slider",
   [TUTORIAL_TARGET_KEYS.guessButton]: "tutorial-guess-button",
   [TUTORIAL_TARGET_KEYS.confirmButton]: "tutorial-confirm-button",
   [TUTORIAL_TARGET_KEYS.finishButton]: null,
@@ -123,10 +123,7 @@ export function TutorialGameClient() {
       targetIds={{
         clueImage: TUTORIAL_TARGET_IDS.clueImage ?? undefined,
         mapToggle: TUTORIAL_TARGET_IDS.mapToggle ?? undefined,
-        radiusOptionIds: {
-          50: TUTORIAL_TARGET_IDS.smallRadiusOption ?? undefined,
-          5000: TUTORIAL_TARGET_IDS.largeRadiusOption ?? undefined,
-        },
+        radiusSlider: TUTORIAL_TARGET_IDS.largeRadiusOption ?? undefined,
         hintsButton: TUTORIAL_TARGET_IDS.hintsButton ?? undefined,
         getMeCloserHint: TUTORIAL_TARGET_IDS.getMeCloserHint ?? undefined,
         walkAction: TUTORIAL_TARGET_IDS.walkAction ?? undefined,
